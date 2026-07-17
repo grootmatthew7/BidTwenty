@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BidTwenty — Loading…</title>
+    <link rel="stylesheet" href="loading.css"/>
+</head>
+<body>
+<div class="stage">
+    <h1>Bid<span>Twenty</span></h1>
+    <p class="tagline">$20. Two GMs. One live NBA auction.</p>
+
+    <!-- Pure-CSS bouncing basketball -->
+    <div class="court">
+        <div class="ball">
+            <span class="seam v"></span>
+            <span class="seam h"></span>
+            <span class="seam curve left"></span>
+            <span class="seam curve right"></span>
+        </div>
+        <div class="shadow"></div>
+    </div>
+
+    <div class="loadbar"><div id="fill" class="fill"></div></div>
+    <p id="statusText" class="status">Waking up the arena…</p>
+    <p id="subText" class="sub">Free servers nap when idle — first load can take ~30s.</p>
+
+    <a id="manualLink" class="manual hidden" href="#">Taking too long? Enter the arena →</a>
+</div>
+
+<script src="loading.js"></script>
+</body>
+</html>

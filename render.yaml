@@ -1,0 +1,16 @@
+# Render Blueprint. In the Render dashboard: New + -> Blueprint -> pick this repo.
+# Deploys the BidTwenty Java server as a free web service using the Dockerfile.
+services:
+  - type: web
+    name: bidtwenty
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Render injects PORT automatically; Main.java reads it.
+      # To enable live NBA stats instead of curated values, set this in the
+      # Render dashboard (Environment tab) rather than committing a key here.
+      - key: BALLDONTLIE_API_KEY
+        sync: false

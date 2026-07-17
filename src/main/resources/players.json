@@ -1,0 +1,40 @@
+{
+  "categories": [
+    { "id": "MVP",        "label": "Most Valuable Player",        "weight": 5 },
+    { "id": "ALL_STAR",   "label": "All-Star",                    "weight": 3 },
+    { "id": "DPOY",       "label": "Defensive Player of the Year","weight": 3 },
+    { "id": "SIXTH_MAN",  "label": "6th Man of the Year",         "weight": 2 },
+    { "id": "MIP",        "label": "Most Improved Player",        "weight": 2 }
+  ],
+  "players": [
+    { "name": "Nikola Jokic",        "team": "DEN", "category": "MVP",       "searchName": "Jokic",    "baseValue": 98 },
+    { "name": "Joel Embiid",         "team": "PHI", "category": "MVP",       "searchName": "Embiid",   "baseValue": 95 },
+    { "name": "Giannis Antetokounmpo","team": "MIL","category": "MVP",       "searchName": "Antetokounmpo", "baseValue": 96 },
+    { "name": "Luka Doncic",         "team": "DAL", "category": "MVP",       "searchName": "Doncic",   "baseValue": 94 },
+    { "name": "Shai Gilgeous-Alexander","team": "OKC","category": "MVP",     "searchName": "Gilgeous", "baseValue": 93 },
+
+    { "name": "Jayson Tatum",        "team": "BOS", "category": "ALL_STAR",  "searchName": "Tatum",    "baseValue": 90 },
+    { "name": "Devin Booker",        "team": "PHX", "category": "ALL_STAR",  "searchName": "Booker",   "baseValue": 86 },
+    { "name": "Anthony Edwards",     "team": "MIN", "category": "ALL_STAR",  "searchName": "Edwards",  "baseValue": 88 },
+    { "name": "Donovan Mitchell",    "team": "CLE", "category": "ALL_STAR",  "searchName": "Mitchell", "baseValue": 85 },
+    { "name": "Tyrese Haliburton",   "team": "IND", "category": "ALL_STAR",  "searchName": "Haliburton","baseValue": 84 },
+    { "name": "Damian Lillard",      "team": "MIL", "category": "ALL_STAR",  "searchName": "Lillard",  "baseValue": 83 },
+
+    { "name": "Rudy Gobert",         "team": "MIN", "category": "DPOY",      "searchName": "Gobert",   "baseValue": 80 },
+    { "name": "Victor Wembanyama",   "team": "SAS", "category": "DPOY",      "searchName": "Wembanyama","baseValue": 89 },
+    { "name": "Bam Adebayo",         "team": "MIA", "category": "DPOY",      "searchName": "Adebayo",  "baseValue": 79 },
+    { "name": "Jaren Jackson Jr.",   "team": "MEM", "category": "DPOY",      "searchName": "Jackson",  "baseValue": 78 },
+    { "name": "Anthony Davis",       "team": "LAL", "category": "DPOY",      "searchName": "Davis",    "baseValue": 87 },
+
+    { "name": "Malik Monk",          "team": "SAC", "category": "SIXTH_MAN", "searchName": "Monk",     "baseValue": 68 },
+    { "name": "Naz Reid",            "team": "MIN", "category": "SIXTH_MAN", "searchName": "Reid",     "baseValue": 66 },
+    { "name": "Bobby Portis",        "team": "MIL", "category": "SIXTH_MAN", "searchName": "Portis",   "baseValue": 65 },
+    { "name": "Norman Powell",       "team": "LAC", "category": "SIXTH_MAN", "searchName": "Powell",   "baseValue": 67 },
+    { "name": "Jordan Poole",        "team": "WAS", "category": "SIXTH_MAN", "searchName": "Poole",    "baseValue": 64 },
+
+    { "name": "Tyrese Maxey",        "team": "PHI", "category": "MIP",       "searchName": "Maxey",    "baseValue": 82 },
+    { "name": "Alperen Sengun",      "team": "HOU", "category": "MIP",       "searchName": "Sengun",   "baseValue": 76 },
+    { "name": "Coby White",          "team": "CHI", "category": "MIP",       "searchName": "White",    "baseValue": 72 },
+    { "name": "Franz Wagner",        "team": "ORL", "category": "MIP",       "searchName": "Wagner",   "baseValue": 77 }
+  ]
+}

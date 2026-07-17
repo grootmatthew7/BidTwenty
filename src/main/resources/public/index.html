@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>BidTwenty — NBA Auction Draft</title>
+    <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<header>
+    <h1>Bid<span>Twenty</span></h1>
+    <p class="tagline">$20. Two GMs. One live NBA auction.</p>
+</header>
+
+<main>
+    <!-- Connection status -->
+    <div id="status" class="status">Connecting…</div>
+
+    <!-- LOBBY: create or join -->
+    <section id="lobby" class="card hidden">
+        <div class="lobby-grid">
+            <div class="lobby-col">
+                <h2>Create a game</h2>
+                <input id="createName" type="text" placeholder="Your name" maxlength="24"/>
+                <button id="createBtn">Create room</button>
+            </div>
+            <div class="divider">or</div>
+            <div class="lobby-col">
+                <h2>Join a game</h2>
+                <input id="joinName" type="text" placeholder="Your name" maxlength="24"/>
+                <input id="joinCode" type="text" placeholder="Room code" maxlength="4" class="code-input"/>
+                <button id="joinBtn">Join room</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- WAITING ROOM -->
+    <section id="waiting" class="card hidden">
+        <h2>Room <span id="roomCode" class="room-code"></span></h2>
+        <p class="hint">Share this code with your opponent.</p>
+        <ul id="waitingPlayers" class="player-list"></ul>
+        <button id="startBtn" class="hidden">Start auction</button>
+        <p id="waitingHint" class="hint"></p>
+    </section>
+
+    <!-- GAME -->
+    <section id="game" class="hidden">
+        <div class="scoreboard">
+            <div id="me" class="team me"></div>
+            <div class="vs">VS</div>
+            <div id="them" class="team them"></div>
+        </div>
+
+        <div class="auction card">
+            <div class="progress" id="progress"></div>
+            <div class="up-for-bid">
+                <div id="playerCard" class="player-card"></div>
+                <div class="bid-panel">
+                    <div id="bidState" class="bid-state"></div>
+                    <div id="turnBanner" class="turn-banner"></div>
+                    <div class="bid-controls">
+                        <input id="bidAmount" type="number" min="1" class="bid-amount"/>
+                        <button id="bidBtn">Raise</button>
+                        <button id="passBtn" class="secondary">Pass</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="log" class="log"></div>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results" class="card hidden">
+        <h2 id="resultHeadline"></h2>
+        <div id="resultScores" class="result-scores"></div>
+        <button id="playAgainBtn">New game</button>
+    </section>
+</main>
+
+<footer>
+    <span id="liveBadge"></span>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
