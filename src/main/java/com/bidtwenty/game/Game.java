@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A single game room. Holds two participants and drives an open ascending
@@ -29,6 +31,11 @@ public class Game {
     // drafted by someone, so 2 * ROSTER_SIZE reveals fill both squads exactly.
     public static final int POOL_SIZE = 2 * ROSTER_SIZE;
 
+    // Delay between showing an auto-claimed player and adding it to the trailing
+    // squad. Overridable via env var so tests can run without the 3s pause.
+    public static final long AUTO_CLAIM_DELAY_MS =
+            Long.parseLong(System.getenv().getOrDefault("BIDTWENTY_AUTOCLAIM_MS", "3000"));
+
     private final String roomCode;
     private final PlayerRepository repo;
     private final StatsProvider stats;
@@ -45,11 +52,27 @@ public class Game {
     private String lastAction = "";
     private ScoringEngine.Result result;
 
+    // Auto-fill: a player revealed and pending a delayed, free add to the
+    // trailing squad (set while the reveal is on screen, cleared on commit).
+    private NbaPlayer autoClaimPlayer;
+    private String autoClaimTargetId;
+
+    // Wired by the server so the game can drive its own timed auto-fill steps
+    // and push a fresh snapshot to both clients after each step.
+    private ScheduledExecutorService scheduler;
+    private Runnable broadcaster;
+
     public Game(String roomCode, PlayerRepository repo, StatsProvider stats) {
         this.roomCode = roomCode;
         this.repo = repo;
         this.stats = stats;
         this.scoring = new ScoringEngine(repo);
+    }
+
+    /** Wire the scheduler + broadcast callback used to drive timed auto-fill. */
+    public void setAutoRunner(ScheduledExecutorService scheduler, Runnable broadcaster) {
+        this.scheduler = scheduler;
+        this.broadcaster = broadcaster;
     }
 
     public String getRoomCode() {
@@ -75,6 +98,16 @@ public class Game {
 
     public Auction getAuction() {
         return auction;
+    }
+
+    /** Player currently being shown before its delayed auto-add, or null. */
+    public NbaPlayer getAutoClaimPlayer() {
+        return autoClaimPlayer;
+    }
+
+    /** Squad that a pending auto-claim will be added to, or null. */
+    public String getAutoClaimTargetId() {
+        return autoClaimTargetId;
     }
 
     public String getLastAction() {
@@ -230,15 +263,55 @@ public class Game {
                 return;
             }
 
-            // Uncontested: exactly one squad still has room -> it claims the
-            // player for free and we move on.
+            // Uncontested: exactly one squad still has room -> reveal the player
+            // and, after a short delay, add it to that squad for free. Returns so
+            // the reveal is broadcast; a scheduled task commits the add.
             Participant only = aRoom ? a : b;
-            auction = null;
-            draft(only, np, 0, only.getName() + " claimed " + np.getName()
-                    + " for $0 (uncontested)");
-            currentIndex++;
-            // loop to reveal the next player
+            beginAutoClaim(only, np);
+            return;
         }
+    }
+
+    /**
+     * Show an uncontested player, then auto-add it to the trailing squad after
+     * {@link #AUTO_CLAIM_DELAY_MS}. There is nothing to bid on, so both clients
+     * just watch the squad fill out one player at a time.
+     */
+    private void beginAutoClaim(Participant target, NbaPlayer np) {
+        auction = null;
+        autoClaimPlayer = np;
+        autoClaimTargetId = target.getId();
+        lastAction = np.getName() + " up next — filling out " + target.getName() + "'s squad…";
+        scheduleAutoClaimCommit();
+    }
+
+    private void scheduleAutoClaimCommit() {
+        if (scheduler == null) {
+            // No scheduler wired (e.g. a bare unit context): resolve instantly.
+            commitAutoClaim();
+            return;
+        }
+        scheduler.schedule(() -> {
+            synchronized (this) {
+                commitAutoClaim();
+            }
+            if (broadcaster != null) {
+                broadcaster.run();
+            }
+        }, AUTO_CLAIM_DELAY_MS, TimeUnit.MILLISECONDS);
+    }
+
+    private void commitAutoClaim() {
+        if (phase != Phase.AUCTION || autoClaimPlayer == null) {
+            return; // nothing pending (or the game already ended)
+        }
+        Participant target = participant(autoClaimTargetId);
+        NbaPlayer np = autoClaimPlayer;
+        autoClaimPlayer = null;
+        autoClaimTargetId = null;
+        draft(target, np, 0, target.getName() + " added " + np.getName() + " for $0 (uncontested)");
+        currentIndex++;
+        openAuctionForCurrent();
     }
 
     // --- Auction actions -----------------------------------------------------
@@ -287,10 +360,10 @@ public class Game {
             auction.setConsecutiveOpeningPasses(passes);
             lastAction = passer.getName() + " passed on " + auction.getPlayer().getName();
             if (passes >= 2) {
-                // Both declined to bid. Every player must still be drafted so both
-                // squads reach exactly ROSTER_SIZE, so award it (for $0) to whichever
-                // squad has fewer players; ties go to the opener.
-                forcedAward();
+                // Both declined to bid: nobody is forced to take the player. Send
+                // it to the back of the queue to resurface later, and reveal the
+                // next one.
+                requeueCurrent();
             } else {
                 auction.setTurnParticipantId(other(participantId).getId());
                 resolveForcedPasses();
@@ -308,20 +381,16 @@ public class Game {
         openAuctionForCurrent();
     }
 
-    private void forcedAward() {
-        Participant a = participants.get(0);
-        Participant b = participants.get(1);
-        Participant target;
-        if (a.getRoster().size() != b.getRoster().size()) {
-            target = a.getRoster().size() < b.getRoster().size() ? a : b;
-        } else {
-            target = participants.get(currentIndex % 2); // opener breaks the tie
-        }
-        NbaPlayer np = auction.getPlayer();
+    /**
+     * Both GMs passed with no bid on the table: move the revealed player to the
+     * back of the queue (leaving {@code currentIndex} put, since the next player
+     * shifts into this slot) and reveal whoever is next.
+     */
+    private void requeueCurrent() {
+        NbaPlayer np = pool.remove(currentIndex);
+        pool.add(np);
         auction = null;
-        draft(target, np, 0, "No bids - " + np.getName() + " awarded to "
-                + target.getName() + " for $0");
-        currentIndex++;
+        lastAction = "No bids on " + np.getName() + " — back of the queue";
         openAuctionForCurrent();
     }
 

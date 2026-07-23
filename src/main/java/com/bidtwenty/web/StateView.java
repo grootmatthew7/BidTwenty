@@ -80,6 +80,17 @@ public class StateView {
             m.put("auction", null);
         }
 
+        // Pending uncontested auto-claim (player shown before it's added for $0).
+        NbaPlayer acp = game.getAutoClaimPlayer();
+        if (acp != null) {
+            Map<String, Object> ac = new LinkedHashMap<>();
+            ac.put("player", playerView(acp));
+            ac.put("targetId", game.getAutoClaimTargetId());
+            m.put("autoClaim", ac);
+        } else {
+            m.put("autoClaim", null);
+        }
+
         // Result
         if (game.getResult() != null) {
             m.put("result", resultView(game.getResult()));

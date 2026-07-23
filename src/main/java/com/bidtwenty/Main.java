@@ -15,6 +15,8 @@ import io.javalin.websocket.WsContext;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * BidTwenty server: serves the static frontend and exposes a WebSocket endpoint
@@ -35,6 +37,14 @@ public class Main {
     // socket -> (room, participant); room -> set of sockets
     private final Map<WsContext, ClientConn> conns = new ConcurrentHashMap<>();
     private final Map<String, Set<WsContext>> roomSockets = new ConcurrentHashMap<>();
+
+    // Drives timed auto-fill of the trailing squad. Daemon threads so it never
+    // blocks JVM shutdown.
+    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2, r -> {
+        Thread t = new Thread(r, "bidtwenty-autofill");
+        t.setDaemon(true);
+        return t;
+    });
 
     public static void main(String[] args) {
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "7070"));
@@ -92,6 +102,7 @@ public class Main {
 
     private void handleCreate(WsContext ctx, JsonNode msg) {
         Game game = manager.createGame();
+        game.setAutoRunner(scheduler, () -> broadcast(game));
         Participant p = game.join(msg.path("name").asText(""));
         register(ctx, game.getRoomCode(), p.getId());
         sendJoined(ctx, game, p);

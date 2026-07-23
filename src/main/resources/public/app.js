@@ -5,6 +5,7 @@ let ws = null;
 let myId = null;
 let myRoom = null;
 let latest = null;         // last state snapshot
+let resultsAnimated = false; // guard so the tally animation plays only once
 const logLines = [];
 
 // ---- Elements -------------------------------------------------------------
@@ -87,6 +88,7 @@ function renderGame(state) {
     const me = state.participants.find((p) => p.id === myId);
     const them = state.participants.find((p) => p.id !== myId);
     const a = state.auction;
+    const ac = state.autoClaim;
     const myTurn = a && a.turnId === myId;
 
     const rosterSize = state.rosterSize || 5;
@@ -99,22 +101,28 @@ function renderGame(state) {
         `${escape(me.name)} ${me.roster.length}/${rosterSize} · ` +
         `${escape(them ? them.name : "opponent")} ${them ? them.roster.length : 0}/${rosterSize}`;
 
+    // Auto-fill takes over once one squad is set: no bidding, just watch the
+    // trailing squad fill out one player at a time.
+    if (!a && ac) {
+        renderAutoClaim(state, me, them, ac);
+        return;
+    }
+    if (!a) return; // transient (shouldn't happen); nothing to draw
+
     // Player up for bid
     const pc = el("playerCard");
-    if (a) {
-        const p = a.player;
-        const src = p.valueSource === "live" ? "live NBA stats" : "curated";
-        pc.innerHTML =
-            `<div class="pc-name">${escape(p.name)}</div>` +
-            `<div class="pc-team">${escape(p.team)}</div>` +
-            `<div class="pc-cat">${escape(p.categoryLabel)}</div>` +
-            `<div class="pc-value">Value <b>${p.value}</b> <span>(${src})</span></div>`;
-    }
+    const p = a.player;
+    const src = p.valueSource === "live" ? "live NBA stats" : "curated";
+    pc.innerHTML =
+        `<div class="pc-name">${escape(p.name)}</div>` +
+        `<div class="pc-team">${escape(p.team)}</div>` +
+        `<div class="pc-cat">${escape(p.categoryLabel)}</div>` +
+        `<div class="pc-value">Value <b>${p.value}</b> <span>(${src})</span></div>`;
 
     // Bid state
     const bidState = el("bidState");
     if (a.highBidderId) {
-        const leader = state.participants.find((p) => p.id === a.highBidderId);
+        const leader = state.participants.find((pp) => pp.id === a.highBidderId);
         const who = leader && leader.id === myId ? "You lead" : `${escape(leader ? leader.name : "?")} leads`;
         bidState.innerHTML = `${who} at <span class="amt">$${a.currentBid}</span>`;
     } else {
@@ -156,6 +164,32 @@ function renderGame(state) {
         : "Pass";
 }
 
+// One squad is already set; show the uncontested player being auto-added to the
+// other squad, with bidding controls disabled.
+function renderAutoClaim(state, me, them, ac) {
+    const p = ac.player;
+    const target = state.participants.find((pp) => pp.id === ac.targetId);
+    const targetName = target ? (target.id === myId ? "your" : escape(target.name) + "'s") : "the";
+    const src = p.valueSource === "live" ? "live NBA stats" : "curated";
+
+    el("playerCard").innerHTML =
+        `<div class="pc-name">${escape(p.name)}</div>` +
+        `<div class="pc-team">${escape(p.team)}</div>` +
+        `<div class="pc-cat">${escape(p.categoryLabel)}</div>` +
+        `<div class="pc-value">Value <b>${p.value}</b> <span>(${src})</span></div>`;
+
+    el("bidState").innerHTML = `Auto-filling ${targetName} squad — no bidding`;
+
+    const banner = el("turnBanner");
+    banner.textContent = `${escape(p.name)} joining ${targetName} squad…`;
+    banner.className = "turn-banner their-turn";
+
+    el("bidBtn").disabled = true;
+    el("passBtn").disabled = true;
+    el("bidAmount").disabled = true;
+    el("bidAmount").value = "";
+}
+
 function renderTeam(container, p, side, a, rosterSize) {
     if (!p) { container.innerHTML = ""; return; }
     const size = rosterSize || 5;
@@ -178,6 +212,63 @@ function renderTeam(container, p, side, a, rosterSize) {
 
 function renderResults(state) {
     const r = state.result;
+
+    // Build both empty team panels (running total starts at 0).
+    const box = el("resultScores");
+    box.innerHTML = "";
+    const panels = r.scores.map((s) => {
+        const div = document.createElement("div");
+        div.className = "result-team";
+        div.dataset.pid = s.participantId;
+        div.innerHTML =
+            `<h3>${escape(s.name)}${s.participantId === myId ? " (you)" : ""}</h3>` +
+            `<div class="total">0 pts</div><table></table>`;
+        box.appendChild(div);
+        return div;
+    });
+
+    if (resultsAnimated) {
+        // Already played once (e.g. a later state re-render): fill instantly.
+        finalizeResults(r, panels);
+        return;
+    }
+    resultsAnimated = true;
+    el("resultHeadline").textContent = "Tallying the squads…";
+
+    // Interleave selections from first pick to last: p1[0], p2[0], p1[1], ...
+    const steps = [];
+    const maxLen = Math.max(0, ...r.scores.map((s) => s.breakdown.length));
+    for (let i = 0; i < maxLen; i++) {
+        r.scores.forEach((s, ti) => {
+            if (i < s.breakdown.length) steps.push({ ti, item: s.breakdown[i] });
+        });
+    }
+
+    const totals = r.scores.map(() => 0);
+    let k = 0;
+    const STEP_MS = 650;
+    function tick() {
+        if (k >= steps.length) { revealWinner(r); return; }
+        const { ti, item } = steps[k++];
+        totals[ti] = Math.round((totals[ti] + item.points) * 10) / 10;
+        const panel = panels[ti];
+        panel.querySelector(".total").textContent = totals[ti] + " pts";
+        panel.querySelector("table").appendChild(scoreRow(item));
+        setTimeout(tick, STEP_MS);
+    }
+    tick();
+}
+
+function scoreRow(item) {
+    const tr = document.createElement("tr");
+    tr.innerHTML =
+        `<td>${escape(item.player)}</td>` +
+        `<td class="num">${escape(item.team)}</td>` +
+        `<td class="num">${item.points}</td>`;
+    return tr;
+}
+
+function revealWinner(r) {
     const headline = el("resultHeadline");
     if (r.tie) {
         headline.textContent = "It's a tie!";
@@ -186,23 +277,23 @@ function renderResults(state) {
         const winner = r.scores.find((s) => s.participantId === r.winnerId);
         headline.textContent = won ? "You win! 🏆" : `${winner ? winner.name : "Opponent"} wins`;
     }
-
-    const box = el("resultScores");
-    box.innerHTML = "";
-    r.scores.forEach((s) => {
-        const div = document.createElement("div");
-        div.className = "result-team" + (s.participantId === r.winnerId ? " winner" : "");
-        const rows = s.breakdown.map((li) =>
-            `<tr><td>${escape(li.player)}</td>` +
-            `<td class="num">${escape(li.team)}</td>` +
-            `<td class="num">${li.points}</td></tr>`
-        ).join("");
-        div.innerHTML =
-            `<h3>${escape(s.name)}${s.participantId === myId ? " (you)" : ""}</h3>` +
-            `<div class="total">${s.total} pts</div>` +
-            `<table>${rows || '<tr><td>No players won</td></tr>'}</table>`;
-        box.appendChild(div);
+    document.querySelectorAll("#resultScores .result-team").forEach((d) => {
+        d.classList.toggle("winner", d.dataset.pid === r.winnerId);
     });
+}
+
+// Fill both panels instantly (used when results are re-rendered after the
+// one-time tally animation has already played).
+function finalizeResults(r, panels) {
+    r.scores.forEach((s, ti) => {
+        const panel = panels[ti];
+        panel.querySelector(".total").textContent = s.total + " pts";
+        const table = panel.querySelector("table");
+        table.innerHTML = "";
+        s.breakdown.forEach((item) => table.appendChild(scoreRow(item)));
+        if (s.breakdown.length === 0) table.innerHTML = "<tr><td>No players won</td></tr>";
+    });
+    revealWinner(r);
 }
 
 function renderLiveBadge(live) {
