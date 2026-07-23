@@ -132,9 +132,10 @@ public class SmokeTest {
             }
         }
         int openSpots = rosterSize - myRoster;
-        int myMaxBid = myBudget - (openSpots - 1); // budget-reserve rule
-        // Strategy: raise by 1 up to my per-item cap and my max bid; otherwise pass.
-        if (minBid <= c.cap && minBid <= myMaxBid) {
+        int myMaxBid = myBudget; // bids open at $0; only limit is remaining budget
+        // Strategy: raise up to my per-item cap and my budget; otherwise pass.
+        // minBid can be 0 (opening bid), so a broke GM still claims players.
+        if (openSpots > 0 && minBid <= c.cap && minBid <= myMaxBid) {
             c.send("{\"type\":\"bid\",\"amount\":" + minBid + "}");
         } else {
             c.send("{\"type\":\"pass\"}");

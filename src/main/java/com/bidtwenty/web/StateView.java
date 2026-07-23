@@ -71,7 +71,7 @@ public class StateView {
             Map<String, Object> am = new LinkedHashMap<>();
             am.put("player", playerView(a.getPlayer()));
             am.put("currentBid", a.getCurrentBid());
-            am.put("minBid", a.getCurrentBid() + 1);
+            am.put("minBid", a.getHighBidderId() == null ? 0 : a.getCurrentBid() + 1);
             am.put("highBidderId", a.getHighBidderId());
             am.put("turnId", a.getTurnParticipantId());
             m.put("auction", am);

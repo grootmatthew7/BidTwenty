@@ -111,12 +111,12 @@ function renderGame(state) {
 
     // Bid state
     const bidState = el("bidState");
-    if (a.currentBid > 0) {
+    if (a.highBidderId) {
         const leader = state.participants.find((p) => p.id === a.highBidderId);
         const who = leader && leader.id === myId ? "You lead" : `${escape(leader ? leader.name : "?")} leads`;
         bidState.innerHTML = `${who} at <span class="amt">$${a.currentBid}</span>`;
     } else {
-        bidState.innerHTML = `No bids yet — opening bid <span class="amt">$1</span>`;
+        bidState.innerHTML = `No bids yet — opening bid <span class="amt">$0</span>`;
     }
 
     // Turn banner + controls
@@ -125,14 +125,15 @@ function renderGame(state) {
     const passBtn = el("passBtn");
     const amt = el("bidAmount");
     const minBid = a.minBid;
-    // Budget-reserve rule: keep $1 for every other open roster spot.
+    // Bids open at $0, so a GM can always claim a player they can afford the
+    // minimum for — the only limit is your remaining budget.
     const openSpots = rosterSize - me.roster.length;
-    const myMaxBid = me.budget - (openSpots - 1);
+    const myMaxBid = me.budget;
     const canAfford = openSpots > 0 && myMaxBid >= minBid;
 
     if (myTurn) {
         banner.textContent = canAfford
-            ? `Your turn — raise or pass (max bid $${myMaxBid})`
+            ? `Your turn — raise or pass (up to $${myMaxBid})`
             : "Your turn — you're priced out, you can only pass";
         banner.className = "turn-banner your-turn";
     } else {

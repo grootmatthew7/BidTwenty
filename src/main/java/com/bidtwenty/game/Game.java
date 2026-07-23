@@ -179,12 +179,12 @@ public class Game {
     }
 
     /**
-     * Highest amount a participant may bid right now. The budget-reserve rule
-     * keeps at least $1 available for every other open roster spot, guaranteeing
-     * that a team can always afford to fill all {@link #ROSTER_SIZE} spots.
+     * Minimum legal next bid. Bidding opens at $0 (so a GM who has spent all their
+     * money can still acquire a player for free), and each raise must be at least
+     * $1 above the standing bid.
      */
-    private int maxBid(Participant p) {
-        return p.getBudget() - (openSpots(p) - 1);
+    private int currentMinBid() {
+        return auction.getHighBidderId() == null ? 0 : auction.getCurrentBid() + 1;
     }
 
     // --- Reveal / open next auction -----------------------------------------
@@ -211,11 +211,11 @@ public class Game {
             }
 
             // Uncontested: exactly one squad still has room -> it claims the
-            // player at the minimum price and we move on.
+            // player for free and we move on.
             Participant only = aRoom ? a : b;
             auction = null;
-            draft(only, np, 1, only.getName() + " claimed " + np.getName()
-                    + " for $1 (uncontested)");
+            draft(only, np, 0, only.getName() + " claimed " + np.getName()
+                    + " for $0 (uncontested)");
             currentIndex++;
             // loop to reveal the next player
         }
@@ -232,14 +232,13 @@ public class Game {
         if (isFull(bidder)) {
             throw new IllegalStateException("Your squad is already full");
         }
-        int minBid = auction.getCurrentBid() + 1;
+        int minBid = currentMinBid();
         if (amount < minBid) {
             throw new IllegalStateException("Bid must be at least $" + minBid);
         }
-        int max = maxBid(bidder);
-        if (amount > max) {
-            throw new IllegalStateException("Max bid is $" + max
-                    + " - you must keep $1 for each of your remaining roster spots");
+        if (amount > bidder.getBudget()) {
+            throw new IllegalStateException("You only have $" + bidder.getBudget()
+                    + " to spend");
         }
         auction.setCurrentBid(amount);
         auction.setHighBidderId(participantId);
@@ -269,7 +268,7 @@ public class Game {
             lastAction = passer.getName() + " passed on " + auction.getPlayer().getName();
             if (passes >= 2) {
                 // Both declined to bid. Every player must still be drafted so both
-                // squads reach exactly ROSTER_SIZE, so award it (at $1) to whichever
+                // squads reach exactly ROSTER_SIZE, so award it (for $0) to whichever
                 // squad has fewer players; ties go to the opener.
                 forcedAward();
             } else {
@@ -300,8 +299,8 @@ public class Game {
         }
         NbaPlayer np = auction.getPlayer();
         auction = null;
-        draft(target, np, 1, "No bids - " + np.getName() + " awarded to "
-                + target.getName() + " for $1");
+        draft(target, np, 0, "No bids - " + np.getName() + " awarded to "
+                + target.getName() + " for $0");
         currentIndex++;
         openAuctionForCurrent();
     }
@@ -314,17 +313,17 @@ public class Game {
     }
 
     /**
-     * If the player whose turn it is cannot make any legal bid (their max bid is
-     * below the minimum), they are auto-passed so the auction never stalls on a
-     * priced-out bidder. Terminates because each auto-pass concedes to the
-     * standing high bidder.
+     * If the player whose turn it is cannot make any legal bid (their budget is
+     * below the minimum next bid), they are auto-passed so the auction never
+     * stalls on a priced-out bidder. Because the opening bid is $0, this only
+     * triggers once the standing bid has climbed above a broke GM's budget.
+     * Terminates because each auto-pass concedes to the standing high bidder.
      */
     private void resolveForcedPasses() {
         while (phase == Phase.AUCTION && auction != null) {
             String turnId = auction.getTurnParticipantId();
             Participant turn = participant(turnId);
-            int minBid = auction.getCurrentBid() + 1;
-            if (maxBid(turn) >= minBid) {
+            if (turn.getBudget() >= currentMinBid()) {
                 return; // this player has a real choice; wait for input
             }
             applyPass(turnId); // priced out -> concede; loop re-checks
