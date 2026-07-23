@@ -238,7 +238,24 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
     100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
 }
 
-#resultHeadline { text-align: center; font-size: 1.8rem; }
+#resultHeadline { text-align: center; font-size: 1.8rem; margin-bottom: 4px; }
+
+.result-scoreline {
+    text-align: center;
+    font-size: 1.15rem;
+    color: var(--muted);
+    margin: 0 0 14px;
+}
+.result-scoreline b { color: var(--text); font-size: 1.35rem; }
+.result-scoreline .sl-label {
+    color: var(--accent);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: .8rem;
+    margin-right: 6px;
+}
+.result-scoreline .sl-dash { margin: 0 10px; color: var(--muted); }
 
 /* Loss-margin popup */
 .margin-popup {

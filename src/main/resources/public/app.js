@@ -293,15 +293,36 @@ function bonusRow(s) {
     return tr;
 }
 
-// Basketball-flavored labels for how lopsided the final (cash-adjusted) score was.
+// How lopsided the final (cash-adjusted) score was, by margin band. Each band
+// holds a pool of relative NBA phrases; one is picked at random per game so the
+// same margin can read differently each time.
+//   0–2%  buzzer-beater · 2.01–6% nail-biter · 6.01–10% confident · 10.01%+ blowout
 const MARGIN_BANDS = [
-    { max: 1,        term: "Buzzer Beater",        blurb: "Decided at the final whistle." },
-    { max: 5,        term: "Close Game",           blurb: "Came right down to the wire." },
-    { max: 10,       term: "Comfortable Win",      blurb: "Never really in doubt." },
-    { max: 20,       term: "Double-Digit Cushion", blurb: "A clear step above." },
-    { max: 35,       term: "Blowout",              blurb: "Bench cleared early." },
-    { max: Infinity, term: "Ran Out Of The Gym",   blurb: "Absolute demolition." },
+    {
+        max: 2,
+        terms: ["Buzzer-Beater", "Cardiac Finish", "Overtime Thriller", "Ice in the Veins", "Instant Classic", "Photo Finish"],
+        blurbs: ["Decided at the final horn.", "Heart-stopping to the last possession.", "Neither side blinked.", "One shot settled it."],
+    },
+    {
+        max: 6,
+        terms: ["Nail-Biter", "Four-Quarter Battle", "Closing-Time Edge", "Grind-It-Out Win", "Clutch-Time Separation", "Hard-Fought W"],
+        blurbs: ["Traded haymakers to the buzzer.", "Pulled away in crunch time.", "A war of attrition.", "Earned every bit of it."],
+    },
+    {
+        max: 10,
+        terms: ["Confident Win", "Wire-to-Wire Control", "Comfortable Cruise", "Statement Stretch", "Never-in-Doubt", "Handled Business"],
+        blurbs: ["In control down the stretch.", "Answered every run.", "Rarely felt threatened.", "Closed it out with ease."],
+    },
+    {
+        max: Infinity,
+        terms: ["Blowout", "Ran Out of the Gym", "Bench-Clearing Rout", "Wire-to-Wire Beatdown", "Garbage-Time Special", "Statement Demolition"],
+        blurbs: ["Starters got the night off early.", "Not remotely close.", "A total mismatch.", "Cleared the bench in the third."],
+    },
 ];
+
+function pick(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+}
 
 function showMarginPopup(r) {
     const popup = el("marginPopup");
@@ -311,9 +332,9 @@ function showMarginPopup(r) {
     const loser = r.scores.find((s) => s.participantId !== r.winnerId);
     if (!winner || !loser || winner.total <= 0) { popup.classList.add("hidden"); return; }
     const pct = ((winner.total - loser.total) / winner.total) * 100;
-    const band = MARGIN_BANDS.find((b) => pct < b.max) || MARGIN_BANDS[MARGIN_BANDS.length - 1];
-    popup.querySelector(".margin-term").textContent = band.term;
-    popup.querySelector(".margin-blurb").textContent = band.blurb;
+    const band = MARGIN_BANDS.find((b) => pct <= b.max) || MARGIN_BANDS[MARGIN_BANDS.length - 1];
+    popup.querySelector(".margin-term").textContent = pick(band.terms);
+    popup.querySelector(".margin-blurb").textContent = pick(band.blurbs);
     popup.querySelector(".margin-pct").textContent = pct.toFixed(1) + "% margin";
     popup.classList.remove("hidden");
 }
@@ -339,6 +360,28 @@ function revealWinner(r) {
     document.querySelectorAll("#resultScores .result-team").forEach((d) => {
         d.classList.toggle("winner", d.dataset.pid === r.winnerId);
     });
+    renderScoreline(r);
+}
+
+// Modern NBA teams average roughly this many points a night; we rescale both
+// final totals so their sum lands here, turning the raw point tally into a
+// believable box-score final (e.g. 118–109) while preserving the real margin.
+const MODERN_NBA_AVG = 114;
+
+function renderScoreline(r) {
+    const line = el("resultScoreline");
+    if (!line) return;
+    const sum = r.scores.reduce((acc, s) => acc + (s.total || 0), 0);
+    if (sum <= 0 || r.scores.length !== 2) { line.textContent = ""; return; }
+    const scale = (2 * MODERN_NBA_AVG) / sum;
+    const board = r.scores
+        .map((s) => ({ name: s.name, score: Math.round(s.total * scale) }))
+        .sort((a, b) => b.score - a.score);
+    line.innerHTML =
+        `<span class="sl-label">Final</span> ` +
+        `${escape(board[0].name)} <b>${board[0].score}</b>` +
+        `<span class="sl-dash">–</span>` +
+        `<b>${board[1].score}</b> ${escape(board[1].name)}`;
 }
 
 // Fill both panels instantly (used when results are re-rendered after the
