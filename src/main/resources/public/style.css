@@ -283,6 +283,10 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
 }
 .margin-term { font-size: 2rem; font-weight: 800; color: var(--gold); letter-spacing: -.5px; }
 .margin-blurb { color: var(--text); margin: 10px 0 4px; }
+.margin-score { color: var(--muted); font-size: 1rem; margin: 8px 0 4px; }
+.margin-score b { color: var(--text); font-size: 1.2rem; }
+.margin-score .sl-label { color: var(--accent); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-size: .72rem; margin-right: 6px; }
+.margin-score .sl-dash { margin: 0 8px; color: var(--muted); }
 .margin-pct { color: var(--muted); font-size: .9rem; margin-bottom: 14px; }
 .margin-popup-inner button { width: auto; padding: 10px 24px; margin: 0; }
 

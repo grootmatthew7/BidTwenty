@@ -336,6 +336,8 @@ function showMarginPopup(r) {
     popup.querySelector(".margin-term").textContent = pick(band.terms);
     popup.querySelector(".margin-blurb").textContent = pick(band.blurbs);
     popup.querySelector(".margin-pct").textContent = pct.toFixed(1) + "% margin";
+    const m = buildScoreModel(r);
+    popup.querySelector(".margin-score").innerHTML = m.board.length === 2 ? scorelineHTML(m) : "";
     popup.classList.remove("hidden");
 }
 
@@ -366,22 +368,69 @@ function revealWinner(r) {
 // Modern NBA teams average roughly this many points a night; we rescale both
 // final totals so their sum lands here, turning the raw point tally into a
 // believable box-score final (e.g. 118–109) while preserving the real margin.
+// Each overtime period is ~5 minutes, worth roughly this many extra points/team.
 const MODERN_NBA_AVG = 114;
+const OT_POINTS_PER_TEAM = 12;
+
+// Built once per game (cached) so the scoreline and the margin popup agree on the
+// same overtime designation and box-score numbers even across re-renders.
+let scoreModel = null;
+
+function buildScoreModel(r) {
+    if (scoreModel) return scoreModel;
+    if (r.scores.length !== 2) {
+        scoreModel = { board: [], otTag: null, pct: 0, tie: r.tie };
+        return scoreModel;
+    }
+    const sorted = [...r.scores].sort((a, b) => (b.total || 0) - (a.total || 0));
+    const sum = (sorted[0].total || 0) + (sorted[1].total || 0);
+    const pct = sorted[0].total > 0
+        ? ((sorted[0].total - sorted[1].total) / sorted[0].total) * 100
+        : 0;
+
+    // A dead heat (<=2% and not an exact tie) is decided in overtime. Pick how
+    // many extra periods it took, which also inflates the box score below.
+    let otTag = null;
+    let periods = 0;
+    if (!r.tie && pct <= 2 && sum > 0) {
+        periods = 1 + Math.floor(Math.random() * 3);      // 1..3
+        otTag = "OT" + (periods > 1 ? periods : "");
+    }
+
+    let board;
+    if (sum <= 0) {
+        board = sorted.map((s) => ({ name: s.name, score: 0 }));
+    } else {
+        const perTeam = MODERN_NBA_AVG + OT_POINTS_PER_TEAM * periods;
+        const scale = (2 * perTeam) / sum;
+        board = sorted.map((s) => ({ name: s.name, score: Math.round((s.total || 0) * scale) }));
+        // A decided game can't end level on the scoreboard — nudge the winner up
+        // so the two figures always differ by at least one.
+        if (!r.tie && board[0].score <= board[1].score) {
+            board[0].score = board[1].score + 1;
+        }
+    }
+    scoreModel = { board, otTag, pct, tie: r.tie };
+    return scoreModel;
+}
+
+function scorelineHTML(m) {
+    const label = m.otTag ? "Final · " + m.otTag : "Final";
+    return `<span class="sl-label">${label}</span> ` +
+        `${escape(m.board[0].name)} <b>${m.board[0].score}</b>` +
+        `<span class="sl-dash">–</span>` +
+        `<b>${m.board[1].score}</b> ${escape(m.board[1].name)}`;
+}
 
 function renderScoreline(r) {
     const line = el("resultScoreline");
     if (!line) return;
-    const sum = r.scores.reduce((acc, s) => acc + (s.total || 0), 0);
-    if (sum <= 0 || r.scores.length !== 2) { line.textContent = ""; return; }
-    const scale = (2 * MODERN_NBA_AVG) / sum;
-    const board = r.scores
-        .map((s) => ({ name: s.name, score: Math.round(s.total * scale) }))
-        .sort((a, b) => b.score - a.score);
-    line.innerHTML =
-        `<span class="sl-label">Final</span> ` +
-        `${escape(board[0].name)} <b>${board[0].score}</b>` +
-        `<span class="sl-dash">–</span>` +
-        `<b>${board[1].score}</b> ${escape(board[1].name)}`;
+    const m = buildScoreModel(r);
+    if (m.board.length !== 2 || (m.board[0].score === 0 && m.board[1].score === 0)) {
+        line.textContent = "";
+        return;
+    }
+    line.innerHTML = scorelineHTML(m);
 }
 
 // Fill both panels instantly (used when results are re-rendered after the
