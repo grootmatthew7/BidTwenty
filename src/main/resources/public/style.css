@@ -162,6 +162,12 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
 
 /* Auction */
 .progress { color: var(--muted); font-size: .85rem; margin-bottom: 10px; }
+.cat-banner {
+    color: var(--accent);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
 .up-for-bid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .player-card {
     background: linear-gradient(160deg, var(--panel-2), #131a24);

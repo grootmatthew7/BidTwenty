@@ -1,10 +1,10 @@
 {
   "categories": [
-    { "id": "MVP",        "label": "Most Valuable Player",        "weight": 5 },
-    { "id": "ALL_STAR",   "label": "All-Star",                    "weight": 3 },
-    { "id": "DPOY",       "label": "Defensive Player of the Year","weight": 3 },
-    { "id": "SIXTH_MAN",  "label": "6th Man of the Year",         "weight": 2 },
-    { "id": "MIP",        "label": "Most Improved Player",        "weight": 2 }
+    { "id": "MVP",        "label": "Most Valuable Player" },
+    { "id": "ALL_STAR",   "label": "All-Star" },
+    { "id": "DPOY",       "label": "Defensive Player of the Year" },
+    { "id": "SIXTH_MAN",  "label": "6th Man of the Year" },
+    { "id": "MIP",        "label": "Most Improved Player" }
   ],
   "players": [
     { "name": "Shai Gilgeous-Alexander", "team": "OKC", "category": "MVP", "searchName": "Gilgeous",      "baseValue": 97 },

@@ -41,15 +41,16 @@ public class StateView {
         m.put("poolIndex", game.currentIndex());
         m.put("poolSize", game.poolSize());
 
-        // Category reference (id -> label / weight)
-        Map<String, Object> cats = new LinkedHashMap<>();
-        for (Category c : repo.categories().values()) {
+        // The single category this game is played over (null until it starts).
+        Category chosen = game.getCategory();
+        if (chosen != null) {
             Map<String, Object> cm = new LinkedHashMap<>();
-            cm.put("label", c.label());
-            cm.put("weight", c.weight());
-            cats.put(c.id(), cm);
+            cm.put("id", chosen.id());
+            cm.put("label", chosen.label());
+            m.put("category", cm);
+        } else {
+            m.put("category", null);
         }
-        m.put("categories", cats);
 
         // Participants
         List<Map<String, Object>> parts = new ArrayList<>();
@@ -104,7 +105,6 @@ public class StateView {
         pm.put("category", np.getCategory());
         Category c = repo.category(np.getCategory());
         pm.put("categoryLabel", c == null ? np.getCategory() : c.label());
-        pm.put("categoryWeight", c == null ? 1 : c.weight());
         pm.put("value", np.getResolvedValue());
         pm.put("valueSource", np.getValueSource());
         return pm;
@@ -127,7 +127,6 @@ public class StateView {
                 im.put("team", li.team);
                 im.put("category", li.category);
                 im.put("value", li.value);
-                im.put("weight", li.weight);
                 im.put("points", li.points);
                 items.add(im);
             }

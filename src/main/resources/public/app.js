@@ -93,8 +93,10 @@ function renderGame(state) {
     renderTeam(el("me"), me, "me", a, rosterSize);
     renderTeam(el("them"), them, "them", a, rosterSize);
 
-    el("progress").textContent =
-        `Draft in progress — ${escape(me.name)} ${me.roster.length}/${rosterSize} · ` +
+    const catLabel = state.category ? state.category.label : "";
+    el("progress").innerHTML =
+        `<span class="cat-banner">${escape(catLabel)}</span> auction — ` +
+        `${escape(me.name)} ${me.roster.length}/${rosterSize} · ` +
         `${escape(them ? them.name : "opponent")} ${them ? them.roster.length : 0}/${rosterSize}`;
 
     // Player up for bid
@@ -105,7 +107,7 @@ function renderGame(state) {
         pc.innerHTML =
             `<div class="pc-name">${escape(p.name)}</div>` +
             `<div class="pc-team">${escape(p.team)}</div>` +
-            `<div class="pc-cat">${escape(p.categoryLabel)} · ×${p.categoryWeight}</div>` +
+            `<div class="pc-cat">${escape(p.categoryLabel)}</div>` +
             `<div class="pc-value">Value <b>${p.value}</b> <span>(${src})</span></div>`;
     }
 
@@ -161,7 +163,7 @@ function renderTeam(container, p, side, a, rosterSize) {
     const full = p.roster.length >= size;
     container.className = `team ${side}` + (isTurn ? " turn" : "") + (full ? " full" : "");
     const filled = p.roster.map((np) =>
-        `<li><span>${escape(np.name)}</span><span class="cat">${escape(np.categoryLabel)} ×${np.categoryWeight}</span></li>`
+        `<li><span>${escape(np.name)}</span><span class="cat">${escape(np.team)} · ${np.value}</span></li>`
     ).join("");
     let empties = "";
     for (let i = p.roster.length; i < size; i++) {
@@ -192,7 +194,7 @@ function renderResults(state) {
         div.className = "result-team" + (s.participantId === r.winnerId ? " winner" : "");
         const rows = s.breakdown.map((li) =>
             `<tr><td>${escape(li.player)}</td>` +
-            `<td class="num">${li.value} × ${li.weight}</td>` +
+            `<td class="num">${escape(li.team)}</td>` +
             `<td class="num">${li.points}</td></tr>`
         ).join("");
         div.innerHTML =

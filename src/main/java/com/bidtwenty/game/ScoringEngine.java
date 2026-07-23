@@ -8,9 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Category-weighted scoring. Each rostered player contributes
- * {@code resolvedValue * categoryWeight} to their owner's total. The higher
- * total wins; equal totals are a tie.
+ * Straight-sum scoring. Because every game is played over a single category,
+ * each rostered player simply contributes their resolved value to their owner's
+ * total. The higher total wins; equal totals are a tie.
  */
 public class ScoringEngine {
 
@@ -25,8 +25,7 @@ public class ScoringEngine {
         public String team;
         public String category;
         public double value;   // resolved player value
-        public int weight;     // category weight
-        public double points;  // value * weight
+        public double points;  // equals value (no multiplier)
     }
 
     public static class ParticipantScore {
@@ -48,14 +47,12 @@ public class ScoringEngine {
         ps.name = p.getName();
         double total = 0;
         for (NbaPlayer np : p.getRoster()) {
-            int weight = repo.categoryWeight(np.getCategory());
             LineItem li = new LineItem();
             li.player = np.getName();
             li.team = np.getTeam();
             li.category = np.getCategory();
             li.value = np.getResolvedValue();
-            li.weight = weight;
-            li.points = Math.round(np.getResolvedValue() * weight * 10.0) / 10.0;
+            li.points = Math.round(np.getResolvedValue() * 10.0) / 10.0;
             ps.breakdown.add(li);
             total += li.points;
         }

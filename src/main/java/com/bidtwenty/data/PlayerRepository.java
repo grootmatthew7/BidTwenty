@@ -62,9 +62,4 @@ public class PlayerRepository {
     public Map<String, Category> categories() {
         return categoriesById;
     }
-
-    public int categoryWeight(String id) {
-        Category c = categoriesById.get(id);
-        return c == null ? 1 : c.weight();
-    }
 }

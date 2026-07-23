@@ -3,6 +3,7 @@ package com.bidtwenty.game;
 import com.bidtwenty.data.PlayerRepository;
 import com.bidtwenty.data.StatsProvider;
 import com.bidtwenty.model.Auction;
+import com.bidtwenty.model.Category;
 import com.bidtwenty.model.NbaPlayer;
 import com.bidtwenty.model.Participant;
 
@@ -37,6 +38,7 @@ public class Game {
     private String hostId;
 
     private Phase phase = Phase.LOBBY;
+    private Category category;
     private List<NbaPlayer> pool = new ArrayList<>();
     private int currentIndex = -1;
     private Auction auction;
@@ -56,6 +58,11 @@ public class Game {
 
     public Phase getPhase() {
         return phase;
+    }
+
+    /** The single award category this game is played over, or null in the lobby. */
+    public Category getCategory() {
+        return category;
     }
 
     public List<Participant> getParticipants() {
@@ -148,14 +155,27 @@ public class Game {
         phase = Phase.AUCTION;
         currentIndex = 0;
         openAuctionForCurrent();
-        lastAction = "Game started - " + pool.get(0).getName() + " is up first!";
+        lastAction = category.label() + " auction! " + pool.get(0).getName() + " is up first.";
     }
 
+    /**
+     * Pick one random award category and draw the whole pool from it, so every
+     * player revealed this game belongs to the same set.
+     */
     private void buildPool() {
-        List<NbaPlayer> all = repo.allPlayers();
-        Collections.shuffle(all);
-        int n = Math.min(POOL_SIZE, all.size());
-        pool = new ArrayList<>(all.subList(0, n));
+        List<Category> cats = new ArrayList<>(repo.categories().values());
+        Collections.shuffle(cats);
+        category = cats.get(0);
+
+        List<NbaPlayer> inCategory = new ArrayList<>();
+        for (NbaPlayer p : repo.allPlayers()) {
+            if (category.id().equals(p.getCategory())) {
+                inCategory.add(p);
+            }
+        }
+        Collections.shuffle(inCategory);
+        int n = Math.min(POOL_SIZE, inCategory.size());
+        pool = new ArrayList<>(inCategory.subList(0, n));
     }
 
     // --- Roster helpers ------------------------------------------------------
