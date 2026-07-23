@@ -31,7 +31,10 @@ public class ScoringEngine {
     public static class ParticipantScore {
         public String participantId;
         public String name;
-        public double total;
+        public double rawTotal;         // straight sum of point values
+        public int cashLeft;            // budget remaining at game end
+        public double bonusMultiplier;  // 1.0 unless this GM banked the most cash
+        public double total;            // rawTotal * bonusMultiplier (rounded)
         public List<LineItem> breakdown = new ArrayList<>();
     }
 
@@ -45,6 +48,8 @@ public class ScoringEngine {
         ParticipantScore ps = new ParticipantScore();
         ps.participantId = p.getId();
         ps.name = p.getName();
+        ps.cashLeft = p.getBudget();
+        ps.bonusMultiplier = 1.0;
         double total = 0;
         for (NbaPlayer np : p.getRoster()) {
             LineItem li = new LineItem();
@@ -56,7 +61,8 @@ public class ScoringEngine {
             ps.breakdown.add(li);
             total += li.points;
         }
-        ps.total = Math.round(total * 10.0) / 10.0;
+        ps.rawTotal = Math.round(total * 10.0) / 10.0;
+        ps.total = ps.rawTotal;
         return ps;
     }
 
@@ -65,6 +71,12 @@ public class ScoringEngine {
         for (Participant p : participants) {
             result.scores.add(scoreParticipant(p));
         }
+
+        // Frugality bonus: the GM who banked the most cash gets a 1.xx multiplier
+        // where xx is their dollar lead over the other GM (e.g. $18 vs $12 -> 1.06).
+        // A tie in leftover cash means no advantage, so the multiplier stays 1.00.
+        applyCashBonus(result.scores);
+
         ParticipantScore best = null;
         boolean tie = false;
         for (ParticipantScore ps : result.scores) {
@@ -78,5 +90,27 @@ public class ScoringEngine {
         result.tie = tie;
         result.winnerId = tie ? null : (best == null ? null : best.participantId);
         return result;
+    }
+
+    /**
+     * Reward the GM who saved the most money. The player with the higher leftover
+     * budget has their raw total multiplied by {@code 1 + (theirCash - otherCash)/100};
+     * the other player keeps a 1.00 multiplier. With two players and equal cash the
+     * difference is zero, so no bonus is applied.
+     */
+    private void applyCashBonus(List<ParticipantScore> scores) {
+        if (scores.size() != 2) {
+            return;
+        }
+        ParticipantScore a = scores.get(0);
+        ParticipantScore b = scores.get(1);
+        ParticipantScore leader = a.cashLeft >= b.cashLeft ? a : b;
+        ParticipantScore trailer = leader == a ? b : a;
+        int diff = leader.cashLeft - trailer.cashLeft;
+        if (diff <= 0) {
+            return;
+        }
+        leader.bonusMultiplier = 1.0 + diff / 100.0;
+        leader.total = Math.round(leader.rawTotal * leader.bonusMultiplier * 10.0) / 10.0;
     }
 }

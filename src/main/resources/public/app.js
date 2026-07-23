@@ -248,7 +248,7 @@ function renderResults(state) {
     let k = 0;
     const STEP_MS = 650;
     function tick() {
-        if (k >= steps.length) { revealWinner(r); return; }
+        if (k >= steps.length) { applyBonusThenReveal(r, panels); return; }
         const { ti, item } = steps[k++];
         totals[ti] = Math.round((totals[ti] + item.points) * 10) / 10;
         const panel = panels[ti];
@@ -257,6 +257,65 @@ function renderResults(state) {
         setTimeout(tick, STEP_MS);
     }
     tick();
+}
+
+// After the straight-sum tally, reveal the frugality bonus: the GM who banked
+// the most cash gets their total multiplied by 1.xx. Shown as a final row that
+// bumps the running total up to the adjusted score, then the winner + margin.
+function applyBonusThenReveal(r, panels) {
+    const bonused = r.scores
+        .map((s, ti) => ({ s, ti }))
+        .filter(({ s }) => s.bonusMultiplier && s.bonusMultiplier > 1);
+    if (bonused.length === 0) {
+        revealWinner(r);
+        showMarginPopup(r);
+        return;
+    }
+    const PAUSE_MS = 900;
+    setTimeout(() => {
+        bonused.forEach(({ s, ti }) => {
+            const panel = panels[ti];
+            panel.querySelector("table").appendChild(bonusRow(s));
+            panel.querySelector(".total").textContent = s.total + " pts";
+            panel.classList.add("bonus-pop");
+        });
+        setTimeout(() => { revealWinner(r); showMarginPopup(r); }, PAUSE_MS);
+    }, PAUSE_MS);
+}
+
+function bonusRow(s) {
+    const tr = document.createElement("tr");
+    tr.className = "bonus-line";
+    tr.innerHTML =
+        `<td>💰 Cash bonus ($${s.cashLeft} banked)</td>` +
+        `<td class="num"></td>` +
+        `<td class="num">×${s.bonusMultiplier.toFixed(2)}</td>`;
+    return tr;
+}
+
+// Basketball-flavored labels for how lopsided the final (cash-adjusted) score was.
+const MARGIN_BANDS = [
+    { max: 1,        term: "Buzzer Beater",        blurb: "Decided at the final whistle." },
+    { max: 5,        term: "Close Game",           blurb: "Came right down to the wire." },
+    { max: 10,       term: "Comfortable Win",      blurb: "Never really in doubt." },
+    { max: 20,       term: "Double-Digit Cushion", blurb: "A clear step above." },
+    { max: 35,       term: "Blowout",              blurb: "Bench cleared early." },
+    { max: Infinity, term: "Ran Out Of The Gym",   blurb: "Absolute demolition." },
+];
+
+function showMarginPopup(r) {
+    const popup = el("marginPopup");
+    if (!popup) return;
+    if (r.tie) { popup.classList.add("hidden"); return; }
+    const winner = r.scores.find((s) => s.participantId === r.winnerId);
+    const loser = r.scores.find((s) => s.participantId !== r.winnerId);
+    if (!winner || !loser || winner.total <= 0) { popup.classList.add("hidden"); return; }
+    const pct = ((winner.total - loser.total) / winner.total) * 100;
+    const band = MARGIN_BANDS.find((b) => pct < b.max) || MARGIN_BANDS[MARGIN_BANDS.length - 1];
+    popup.querySelector(".margin-term").textContent = band.term;
+    popup.querySelector(".margin-blurb").textContent = band.blurb;
+    popup.querySelector(".margin-pct").textContent = pct.toFixed(1) + "% margin";
+    popup.classList.remove("hidden");
 }
 
 function scoreRow(item) {
@@ -291,7 +350,11 @@ function finalizeResults(r, panels) {
         const table = panel.querySelector("table");
         table.innerHTML = "";
         s.breakdown.forEach((item) => table.appendChild(scoreRow(item)));
-        if (s.breakdown.length === 0) table.innerHTML = "<tr><td>No players won</td></tr>";
+        if (s.breakdown.length === 0) {
+            table.innerHTML = "<tr><td>No players won</td></tr>";
+        } else if (s.bonusMultiplier && s.bonusMultiplier > 1) {
+            table.appendChild(bonusRow(s));
+        }
     });
     revealWinner(r);
 }
@@ -347,5 +410,6 @@ el("bidAmount").addEventListener("keydown", (e) => {
     if (e.key === "Enter") el("bidBtn").click();
 });
 el("playAgainBtn").onclick = () => location.reload();
+el("marginDismiss").onclick = () => el("marginPopup").classList.add("hidden");
 
 connect();

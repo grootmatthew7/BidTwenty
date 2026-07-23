@@ -27,9 +27,6 @@ public class Game {
 
     public static final int START_BUDGET = 20;
     public static final int ROSTER_SIZE = 5;
-    // Exactly ROSTER_SIZE players per team must be drafted, and every reveal is
-    // drafted by someone, so 2 * ROSTER_SIZE reveals fill both squads exactly.
-    public static final int POOL_SIZE = 2 * ROSTER_SIZE;
 
     // Delay between showing an auto-claimed player and adding it to the trailing
     // squad. Overridable via env var so tests can run without the 3s pause.
@@ -207,8 +204,10 @@ public class Game {
             }
         }
         Collections.shuffle(inCategory);
-        int n = Math.min(POOL_SIZE, inCategory.size());
-        pool = new ArrayList<>(inCategory.subList(0, n));
+        // The whole category is up for grabs — every award winner in this set can
+        // surface. Only 2 * ROSTER_SIZE will actually be drafted, but any of them
+        // may be the one that comes up next.
+        pool = new ArrayList<>(inCategory);
     }
 
     // --- Roster helpers ------------------------------------------------------

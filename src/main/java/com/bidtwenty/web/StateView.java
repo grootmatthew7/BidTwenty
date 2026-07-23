@@ -131,6 +131,9 @@ public class StateView {
             sm.put("participantId", ps.participantId);
             sm.put("name", ps.name);
             sm.put("total", ps.total);
+            sm.put("rawTotal", ps.rawTotal);
+            sm.put("cashLeft", ps.cashLeft);
+            sm.put("bonusMultiplier", ps.bonusMultiplier);
             List<Map<String, Object>> items = new ArrayList<>();
             for (ScoringEngine.LineItem li : ps.breakdown) {
                 Map<String, Object> im = new LinkedHashMap<>();
