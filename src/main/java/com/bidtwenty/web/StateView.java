@@ -37,6 +37,7 @@ public class StateView {
         m.put("lastAction", game.getLastAction());
         m.put("liveStats", liveStats);
         m.put("startBudget", Game.START_BUDGET);
+        m.put("rosterSize", Game.ROSTER_SIZE);
         m.put("poolIndex", game.currentIndex());
         m.put("poolSize", game.poolSize());
 

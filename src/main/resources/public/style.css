@@ -147,6 +147,17 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
 .team .roster { list-style: none; padding: 0; margin: 10px 0 0; font-size: .85rem; }
 .team .roster li { display: flex; justify-content: space-between; padding: 3px 0; border-top: 1px dashed var(--line); }
 .team .roster .cat { color: var(--muted); }
+.team .roster li.empty { opacity: .38; font-style: italic; }
+.team.full { box-shadow: 0 0 0 2px var(--gold) inset; }
+.badge-full {
+    font-size: .7rem;
+    color: #10151c;
+    background: var(--gold);
+    border-radius: 999px;
+    padding: 2px 7px;
+    font-weight: 800;
+    vertical-align: middle;
+}
 .vs { align-self: center; color: var(--muted); font-weight: 800; }
 
 /* Auction */

@@ -23,7 +23,10 @@ public class Game {
     public enum Phase { LOBBY, AUCTION, FINISHED }
 
     public static final int START_BUDGET = 20;
-    public static final int POOL_SIZE = 10;
+    public static final int ROSTER_SIZE = 5;
+    // Exactly ROSTER_SIZE players per team must be drafted, and every reveal is
+    // drafted by someone, so 2 * ROSTER_SIZE reveals fill both squads exactly.
+    public static final int POOL_SIZE = 2 * ROSTER_SIZE;
 
     private final String roomCode;
     private final PlayerRepository repo;
@@ -155,11 +158,67 @@ public class Game {
         pool = new ArrayList<>(all.subList(0, n));
     }
 
+    // --- Roster helpers ------------------------------------------------------
+
+    /** Open roster spots remaining for a participant. */
+    private int openSpots(Participant p) {
+        return ROSTER_SIZE - p.getRoster().size();
+    }
+
+    private boolean isFull(Participant p) {
+        return openSpots(p) <= 0;
+    }
+
+    private boolean bothFull() {
+        for (Participant p : participants) {
+            if (!isFull(p)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Highest amount a participant may bid right now. The budget-reserve rule
+     * keeps at least $1 available for every other open roster spot, guaranteeing
+     * that a team can always afford to fill all {@link #ROSTER_SIZE} spots.
+     */
+    private int maxBid(Participant p) {
+        return p.getBudget() - (openSpots(p) - 1);
+    }
+
+    // --- Reveal / open next auction -----------------------------------------
+
     private void openAuctionForCurrent() {
-        NbaPlayer np = pool.get(currentIndex);
-        String openerId = participants.get(currentIndex % 2).getId();
-        auction = new Auction(np, openerId);
-        resolveForcedPasses();
+        // Skip past anyone who is already full; end once both squads are set.
+        while (true) {
+            if (bothFull() || currentIndex >= pool.size()) {
+                finish();
+                return;
+            }
+            Participant a = participants.get(0);
+            Participant b = participants.get(1);
+            boolean aRoom = !isFull(a);
+            boolean bRoom = !isFull(b);
+            NbaPlayer np = pool.get(currentIndex);
+
+            if (aRoom && bRoom) {
+                // Contested: both squads still need players -> open auction.
+                String openerId = participants.get(currentIndex % 2).getId();
+                auction = new Auction(np, openerId);
+                resolveForcedPasses();
+                return;
+            }
+
+            // Uncontested: exactly one squad still has room -> it claims the
+            // player at the minimum price and we move on.
+            Participant only = aRoom ? a : b;
+            auction = null;
+            draft(only, np, 1, only.getName() + " claimed " + np.getName()
+                    + " for $1 (uncontested)");
+            currentIndex++;
+            // loop to reveal the next player
+        }
     }
 
     // --- Auction actions -----------------------------------------------------
@@ -170,12 +229,17 @@ public class Game {
             throw new IllegalStateException("Not your turn");
         }
         Participant bidder = participant(participantId);
+        if (isFull(bidder)) {
+            throw new IllegalStateException("Your squad is already full");
+        }
         int minBid = auction.getCurrentBid() + 1;
         if (amount < minBid) {
             throw new IllegalStateException("Bid must be at least $" + minBid);
         }
-        if (amount > bidder.getBudget()) {
-            throw new IllegalStateException("You only have $" + bidder.getBudget());
+        int max = maxBid(bidder);
+        if (amount > max) {
+            throw new IllegalStateException("Max bid is $" + max
+                    + " - you must keep $1 for each of your remaining roster spots");
         }
         auction.setCurrentBid(amount);
         auction.setHighBidderId(participantId);
@@ -204,9 +268,10 @@ public class Game {
             auction.setConsecutiveOpeningPasses(passes);
             lastAction = passer.getName() + " passed on " + auction.getPlayer().getName();
             if (passes >= 2) {
-                // Both declined -> nobody buys this player.
-                lastAction = auction.getPlayer().getName() + " went unsold";
-                advance();
+                // Both declined to bid. Every player must still be drafted so both
+                // squads reach exactly ROSTER_SIZE, so award it (at $1) to whichever
+                // squad has fewer players; ties go to the opener.
+                forcedAward();
             } else {
                 auction.setTurnParticipantId(other(participantId).getId());
                 resolveForcedPasses();
@@ -217,46 +282,52 @@ public class Game {
     private void award() {
         Participant winner = participant(auction.getHighBidderId());
         int price = auction.getCurrentBid();
-        winner.spend(price);
-        winner.addPlayer(auction.getPlayer());
-        lastAction = winner.getName() + " won " + auction.getPlayer().getName() + " for $" + price;
-        advance();
-    }
-
-    private void advance() {
+        NbaPlayer np = auction.getPlayer();
+        auction = null;
+        draft(winner, np, price, winner.getName() + " won " + np.getName() + " for $" + price);
         currentIndex++;
-        if (currentIndex >= pool.size() || bothBroke()) {
-            finish();
-        } else {
-            openAuctionForCurrent();
-        }
+        openAuctionForCurrent();
     }
 
-    private boolean bothBroke() {
-        for (Participant p : participants) {
-            if (p.getBudget() > 0) {
-                return false;
-            }
+    private void forcedAward() {
+        Participant a = participants.get(0);
+        Participant b = participants.get(1);
+        Participant target;
+        if (a.getRoster().size() != b.getRoster().size()) {
+            target = a.getRoster().size() < b.getRoster().size() ? a : b;
+        } else {
+            target = participants.get(currentIndex % 2); // opener breaks the tie
         }
-        return true;
+        NbaPlayer np = auction.getPlayer();
+        auction = null;
+        draft(target, np, 1, "No bids - " + np.getName() + " awarded to "
+                + target.getName() + " for $1");
+        currentIndex++;
+        openAuctionForCurrent();
+    }
+
+    /** Assign a player to a squad, charge the price, and record the action. */
+    private void draft(Participant winner, NbaPlayer np, int price, String action) {
+        winner.spend(price);
+        winner.addPlayer(np);
+        lastAction = action;
     }
 
     /**
-     * If the player whose turn it is cannot make any legal bid (min bid exceeds
-     * their remaining budget), they are forced to pass automatically. This keeps
-     * the auction from dead-locking on a broke player. Terminates because every
-     * forced pass either awards the player or moves toward the two-pass unsold
-     * limit.
+     * If the player whose turn it is cannot make any legal bid (their max bid is
+     * below the minimum), they are auto-passed so the auction never stalls on a
+     * priced-out bidder. Terminates because each auto-pass concedes to the
+     * standing high bidder.
      */
     private void resolveForcedPasses() {
         while (phase == Phase.AUCTION && auction != null) {
             String turnId = auction.getTurnParticipantId();
             Participant turn = participant(turnId);
             int minBid = auction.getCurrentBid() + 1;
-            if (turn.getBudget() >= minBid) {
+            if (maxBid(turn) >= minBid) {
                 return; // this player has a real choice; wait for input
             }
-            applyPass(turnId); // may advance to a new auction; loop re-checks
+            applyPass(turnId); // priced out -> concede; loop re-checks
         }
     }
 

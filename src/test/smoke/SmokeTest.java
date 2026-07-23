@@ -65,8 +65,10 @@ public class SmokeTest {
 
         System.out.println("\n=== RESULT ===");
         for (JsonNode ps : result.get("scores")) {
+            int players = ps.get("breakdown").size();
             System.out.println(ps.get("name").asText() + ": " + ps.get("total").asDouble() + " pts"
-                    + " (" + ps.get("breakdown").size() + " players)");
+                    + " (" + players + " players)");
+            if (players != 5) fail(ps.get("name").asText() + " ended with " + players + " players, expected exactly 5");
         }
         boolean tie = result.get("tie").asBoolean();
         System.out.println(tie ? "Tie" : "Winner id: " + result.get("winnerId").asText());
@@ -120,13 +122,19 @@ public class SmokeTest {
         if (auction == null || auction.isNull()) return;
         if (!auction.get("turnId").asText().equals(c.id)) return; // not my turn
 
+        int rosterSize = s.path("rosterSize").asInt(5);
         int minBid = auction.get("minBid").asInt();
-        int myBudget = 0;
+        int myBudget = 0, myRoster = 0;
         for (JsonNode p : s.get("participants")) {
-            if (p.get("id").asText().equals(c.id)) myBudget = p.get("budget").asInt();
+            if (p.get("id").asText().equals(c.id)) {
+                myBudget = p.get("budget").asInt();
+                myRoster = p.get("roster").size();
+            }
         }
-        // Strategy: raise by 1 up to my per-item cap and budget; otherwise pass.
-        if (minBid <= c.cap && minBid <= myBudget) {
+        int openSpots = rosterSize - myRoster;
+        int myMaxBid = myBudget - (openSpots - 1); // budget-reserve rule
+        // Strategy: raise by 1 up to my per-item cap and my max bid; otherwise pass.
+        if (minBid <= c.cap && minBid <= myMaxBid) {
             c.send("{\"type\":\"bid\",\"amount\":" + minBid + "}");
         } else {
             c.send("{\"type\":\"pass\"}");

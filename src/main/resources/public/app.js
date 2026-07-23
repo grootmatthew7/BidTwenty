@@ -89,10 +89,13 @@ function renderGame(state) {
     const a = state.auction;
     const myTurn = a && a.turnId === myId;
 
-    renderTeam(el("me"), me, "me", a);
-    renderTeam(el("them"), them, "them", a);
+    const rosterSize = state.rosterSize || 5;
+    renderTeam(el("me"), me, "me", a, rosterSize);
+    renderTeam(el("them"), them, "them", a, rosterSize);
 
-    el("progress").textContent = `Player ${state.poolIndex + 1} of ${state.poolSize}`;
+    el("progress").textContent =
+        `Draft in progress — ${escape(me.name)} ${me.roster.length}/${rosterSize} · ` +
+        `${escape(them ? them.name : "opponent")} ${them ? them.roster.length : 0}/${rosterSize}`;
 
     // Player up for bid
     const pc = el("playerCard");
@@ -122,10 +125,15 @@ function renderGame(state) {
     const passBtn = el("passBtn");
     const amt = el("bidAmount");
     const minBid = a.minBid;
-    const canAfford = me.budget >= minBid;
+    // Budget-reserve rule: keep $1 for every other open roster spot.
+    const openSpots = rosterSize - me.roster.length;
+    const myMaxBid = me.budget - (openSpots - 1);
+    const canAfford = openSpots > 0 && myMaxBid >= minBid;
 
     if (myTurn) {
-        banner.textContent = canAfford ? "Your turn — raise or pass" : "Your turn — you can't afford to raise";
+        banner.textContent = canAfford
+            ? `Your turn — raise or pass (max bid $${myMaxBid})`
+            : "Your turn — you're priced out, you can only pass";
         banner.className = "turn-banner your-turn";
     } else {
         banner.textContent = `Waiting for ${escape(them ? them.name : "opponent")}…`;
@@ -136,7 +144,7 @@ function renderGame(state) {
     passBtn.disabled = !myTurn;
     amt.disabled = !myTurn || !canAfford;
     amt.min = String(minBid);
-    amt.max = String(me.budget);
+    amt.max = String(Math.max(minBid, myMaxBid));
     if (document.activeElement !== amt) {
         amt.value = canAfford ? String(minBid) : "";
     }
@@ -145,17 +153,24 @@ function renderGame(state) {
         : "Pass";
 }
 
-function renderTeam(container, p, side, a) {
+function renderTeam(container, p, side, a, rosterSize) {
     if (!p) { container.innerHTML = ""; return; }
+    const size = rosterSize || 5;
     const isTurn = a && a.turnId === p.id;
-    container.className = `team ${side}` + (isTurn ? " turn" : "");
-    const roster = p.roster.map((np) =>
+    const full = p.roster.length >= size;
+    container.className = `team ${side}` + (isTurn ? " turn" : "") + (full ? " full" : "");
+    const filled = p.roster.map((np) =>
         `<li><span>${escape(np.name)}</span><span class="cat">${escape(np.categoryLabel)} ×${np.categoryWeight}</span></li>`
     ).join("");
+    let empties = "";
+    for (let i = p.roster.length; i < size; i++) {
+        empties += `<li class="empty"><span>Empty slot</span><span class="cat">—</span></li>`;
+    }
     container.innerHTML =
-        `<div class="team-head"><span class="team-name">${escape(p.name)}${p.id === myId ? " (you)" : ""}</span>` +
-        `<span class="budget">$${p.budget}</span></div>` +
-        `<ul class="roster">${roster || '<li><span class="cat">No players yet</span></li>'}</ul>`;
+        `<div class="team-head"><span class="team-name">${escape(p.name)}${p.id === myId ? " (you)" : ""}` +
+        `${full ? ' <span class="badge-full">FULL</span>' : ""}</span>` +
+        `<span class="budget">$${p.budget} · ${p.roster.length}/${size}</span></div>` +
+        `<ul class="roster">${filled}${empties}</ul>`;
 }
 
 function renderResults(state) {
