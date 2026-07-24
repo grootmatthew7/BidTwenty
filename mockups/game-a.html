@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BidTwenty — Game Screen Mock A · Broadcast Orange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root[data-theme="dark"]{
+    --bg:#0d0d0e; --panel:#161513; --panel-2:#1e1c19; --line:#2a2723;
+    --ink:#f3efe9; --muted:#8a8781; --accent:#ff5a1f; --me:#5ad07a; --them:#ff5c5c;
+    --gold:#ffcf3f; --btn-ink:#141312; --glow:#1a1815;
+  }
+  :root[data-theme="light"]{
+    --bg:#f3e7cf; --panel:#fffaf0; --panel-2:#efe0c6; --line:#d8c199;
+    --ink:#2a1f14; --muted:#8a7454; --accent:#d9541a; --me:#1a7a3c; --them:#b4232a;
+    --gold:#c8912b; --btn-ink:#fff6e9; --glow:#fbf1dd;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:radial-gradient(1100px 560px at 50% -12%,var(--glow),var(--bg));
+    color:var(--ink); font-family:"Archivo",-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    min-height:100vh;
+  }
+  .disp{ font-family:"Anton","Arial Narrow",Impact,sans-serif; font-weight:400; }
+
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:18px 26px; }
+  .brand{ font-weight:700; letter-spacing:.2em; text-transform:uppercase; font-size:.82rem; }
+  .brand b{ color:var(--accent); }
+  .toggle{
+    width:40px; height:40px; border-radius:999px; border:1px solid var(--line);
+    background:var(--panel); color:var(--ink); font-size:1.05rem; cursor:pointer; line-height:1;
+  }
+  main{ max-width:980px; margin:0 auto; padding:6px 20px 40px; }
+
+  /* category banner */
+  .cat{
+    text-align:center; text-transform:uppercase; letter-spacing:.28em; font-size:.72rem;
+    color:var(--accent); font-weight:700; margin:2px 0 14px;
+  }
+
+  /* scoreboard */
+  .scoreboard{ display:grid; grid-template-columns:1fr auto 1fr; gap:14px; align-items:stretch; }
+  .team{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; }
+  .team.me{ border-color:color-mix(in srgb,var(--me) 55%,transparent); }
+  .team.them{ border-color:color-mix(in srgb,var(--them) 55%,transparent); }
+  .team.turn{ box-shadow:0 0 0 2px var(--accent) inset; }
+  .team-head{ display:flex; justify-content:space-between; align-items:baseline; }
+  .team-name{ font-size:1.5rem; text-transform:uppercase; letter-spacing:.02em; transform:skewX(-6deg); }
+  .team.me .team-name{ color:var(--me); }
+  .team.them .team-name{ color:var(--them); }
+  .budget{ font-size:1.7rem; font-family:"Anton",sans-serif; color:var(--gold); }
+  .roster{ list-style:none; padding:0; margin:12px 0 0; font-size:.84rem; }
+  .roster li{ display:flex; justify-content:space-between; padding:5px 0; border-top:1px dashed var(--line); }
+  .roster .cat-cell{ color:var(--muted); }
+  .roster li.empty{ opacity:.35; font-style:italic; }
+  .vs{ align-self:center; color:var(--muted); font-family:"Anton",sans-serif; font-size:1.2rem; }
+
+  /* auction */
+  .auction{ background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px; margin-top:16px; }
+  .progress{ color:var(--muted); font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; margin-bottom:12px; }
+  .up{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .player-card{
+    background:linear-gradient(160deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line); border-radius:14px; padding:22px; text-align:center;
+  }
+  .pc-name{ font-size:2.2rem; text-transform:uppercase; color:var(--accent); transform:skewX(-7deg); line-height:.95; }
+  .pc-team{ color:var(--muted); margin:6px 0 12px; letter-spacing:.06em; }
+  .pc-cat{
+    display:inline-block; border:1px solid var(--accent); color:var(--accent);
+    border-radius:999px; padding:5px 14px; font-size:.72rem; font-weight:700;
+    text-transform:uppercase; letter-spacing:.1em;
+  }
+  .pc-value{ margin-top:14px; font-size:.82rem; color:var(--muted); }
+  .pc-value b{ color:var(--ink); }
+
+  .bid-panel{ display:flex; flex-direction:column; justify-content:center; }
+  .bid-state{ font-size:1.05rem; margin-bottom:6px; }
+  .bid-state .amt{ color:var(--gold); font-family:"Anton",sans-serif; font-size:1.6rem; }
+  .turn{ font-weight:700; margin:4px 0 16px; text-transform:uppercase; letter-spacing:.14em; font-size:.74rem; }
+  .turn.you{ color:var(--me); }
+  .controls{ display:grid; grid-template-columns:1fr auto auto; gap:10px; }
+  .controls input{
+    background:var(--bg); color:var(--ink); border:1px solid var(--line);
+    border-radius:999px; padding:12px 18px; font-size:1rem; font-weight:700; width:100%;
+  }
+  .btn{
+    border:none; border-radius:999px; padding:12px 24px; font-weight:700; cursor:pointer;
+    text-transform:uppercase; letter-spacing:.1em; font-size:.76rem;
+  }
+  .btn.raise{ background:var(--accent); color:var(--btn-ink); }
+  .btn.pass{ background:transparent; color:var(--ink); border:1px solid var(--line); }
+
+  .log{
+    margin-top:16px; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:12px 16px; font-size:.82rem; color:var(--muted); max-height:130px; overflow:auto;
+  }
+  .log div{ padding:3px 0; }
+  .log div:first-child{ color:var(--ink); }
+
+  @media(max-width:720px){
+    .scoreboard{ grid-template-columns:1fr; } .vs{ display:none; } .up{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Bid<b>Twenty</b></div>
+    <button class="toggle" id="tt" title="Toggle theme">☾</button>
+  </div>
+
+  <main>
+    <div class="cat">Most Valuable Player · Auction</div>
+
+    <div class="scoreboard">
+      <div class="team me turn">
+        <div class="team-head"><span class="team-name disp">Alice</span><span class="budget">$6</span></div>
+        <ul class="roster">
+          <li><span>SGA</span><span class="cat-cell">OKC · 98</span></li>
+          <li><span>Curry</span><span class="cat-cell">GSW · 89</span></li>
+          <li class="empty"><span>Empty slot</span><span class="cat-cell">—</span></li>
+        </ul>
+      </div>
+      <div class="vs">VS</div>
+      <div class="team them">
+        <div class="team-head"><span class="team-name disp">Bob</span><span class="budget">$9</span></div>
+        <ul class="roster">
+          <li><span>Embiid</span><span class="cat-cell">PHI · 94</span></li>
+          <li class="empty"><span>Empty slot</span><span class="cat-cell">—</span></li>
+          <li class="empty"><span>Empty slot</span><span class="cat-cell">—</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="auction">
+      <div class="progress">Pick 4 of 6 · $10 spent across the table</div>
+      <div class="up">
+        <div class="player-card">
+          <div class="pc-name disp">Nikola Jokić</div>
+          <div class="pc-team">Denver Nuggets</div>
+          <span class="pc-cat">Most Valuable Player</span>
+          <div class="pc-value">Rating <b>96.4</b> · current high bid <b>$7</b></div>
+        </div>
+        <div class="bid-panel">
+          <div class="bid-state">High bid <span class="amt">$7</span> — Bob</div>
+          <div class="turn you">Your move</div>
+          <div class="controls">
+            <input value="$8" />
+            <button class="btn raise">Raise</button>
+            <button class="btn pass">Pass</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="log">
+      <div>Bob raised to $7 on Nikola Jokić</div>
+      <div>Alice raised to $6</div>
+      <div>Bob opened at $5</div>
+      <div>Alice won Curry for $4</div>
+    </div>
+  </main>
+
+<script>
+  const root=document.documentElement, tt=document.getElementById('tt');
+  function setT(t){ root.setAttribute('data-theme',t); tt.textContent = t==='light'?'☀':'☾'; }
+  tt.onclick=()=>setT(root.getAttribute('data-theme')==='light'?'dark':'light');
+  setT('dark');
+</script>
+</body>
+</html>

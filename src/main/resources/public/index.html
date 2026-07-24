@@ -12,6 +12,9 @@
             document.documentElement.setAttribute("data-theme", t === "light" ? "light" : "dark");
         })();
     </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -98,9 +101,45 @@
     </section>
 </main>
 
+<div class="ticker" aria-hidden="true">
+    <div class="track">
+        <span>$20 <b>·</b> Two GMs <b>·</b> One live auction <b>·</b> Winner takes the ring <b>·</b></span>
+        <span>$20 <b>·</b> Two GMs <b>·</b> One live auction <b>·</b> Winner takes the ring <b>·</b></span>
+    </div>
+</div>
+
 <footer>
     <span id="liveBadge"></span>
 </footer>
+
+<!-- Dev/test harness. Hidden unless dev mode is on (localhost, ?dev=1, or the
+     bidtwenty-dev localStorage flag). Drives the real render functions with
+     synthetic state so every end-screen can be previewed without a live game. -->
+<div id="devTools" class="dev-tools hidden">
+    <button id="devFab" class="dev-fab" type="button" title="Dev / test tools">DEV</button>
+    <div id="devTray" class="dev-tray hidden">
+        <div class="dev-group">
+            <span class="dev-label">Auction</span>
+            <button data-dev="player" type="button">Player card ▸</button>
+        </div>
+        <div class="dev-group">
+            <span class="dev-label">Result — margin of win</span>
+            <button data-dev="margin-blowout" type="button">Blowout</button>
+            <button data-dev="margin-confident" type="button">Confident</button>
+            <button data-dev="margin-nailbiter" type="button">Nail-biter</button>
+            <button data-dev="margin-buzzer" type="button">Buzzer-beater</button>
+            <button data-dev="tie" type="button">Tie</button>
+            <button data-dev="bonus" type="button">Cash bonus</button>
+        </div>
+        <div class="dev-group">
+            <span class="dev-label">Overtime</span>
+            <button data-dev="ot1" type="button">OT1</button>
+            <button data-dev="ot2" type="button">OT2</button>
+            <button data-dev="ot3" type="button">OT3</button>
+        </div>
+        <label class="dev-check"><input type="checkbox" id="devAnimate"/> Animate tally</label>
+    </div>
+</div>
 
 <script src="app.js"></script>
 </body>
