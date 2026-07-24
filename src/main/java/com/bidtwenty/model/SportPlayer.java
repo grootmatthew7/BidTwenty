@@ -18,8 +18,8 @@ public interface SportPlayer {
     String getSearchName();
     void setSearchName(String searchName);
 
-    int getBaseValue();
-    void setBaseValue(int baseValue);
+    double getBaseValue();
+    void setBaseValue(double baseValue);
 
     double getResolvedValue();
     void setResolvedValue(double resolvedValue);

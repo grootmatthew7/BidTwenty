@@ -11,7 +11,7 @@ public class NbaPlayer implements SportPlayer {
     private String team;
     private String category;   // Category id, e.g. "ALL_STAR"
     private String searchName; // surname used to query the stats API
-    private int baseValue;     // curated fallback score (0-100)
+    private double baseValue;  // curated fallback score (0-100, may include decimals)
 
     private double resolvedValue; // value actually used for scoring
     private String valueSource = "curated"; // "live" or "curated"
@@ -51,11 +51,11 @@ public class NbaPlayer implements SportPlayer {
         this.searchName = searchName;
     }
 
-    public int getBaseValue() {
+    public double getBaseValue() {
         return baseValue;
     }
 
-    public void setBaseValue(int baseValue) {
+    public void setBaseValue(double baseValue) {
         this.baseValue = baseValue;
     }
 

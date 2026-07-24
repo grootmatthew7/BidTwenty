@@ -1,7 +1,6 @@
 package com.bidtwenty.game;
 
 import com.bidtwenty.data.PlayerRepository;
-import com.bidtwenty.model.NbaPlayer;
 import com.bidtwenty.model.Participant;
 
 import java.util.ArrayList;

@@ -1,0 +1,40 @@
+{
+  "name": "Prime Value Score (PVS)",
+  "description": "Scores a player on their best sustained multi-year prime, independent of which specific award they are tagged with in players_data.json. The 'category' field in players_data.json is metadata for filtering/grouping only and does not affect baseValue.",
+  "equation": "PVS = 0.40*peakImpact + 0.25*accoladeDensity + 0.20*teamSuccess + 0.15*primeLongevity",
+  "weights": {
+    "peak_impact": 0.4,
+    "accolade_density": 0.25,
+    "team_success": 0.2,
+    "prime_longevity": 0.15
+  },
+  "components": {
+    "peakImpact": {
+      "weight": 0.4,
+      "scale": "0-100 (normalized)",
+      "definition": "Average per-possession statistical impact (BPM/EPM-equivalent) across the player's best 3-5 consecutive seasons."
+    },
+    "accoladeDensity": {
+      "weight": 0.25,
+      "scale": "0-100 (normalized)",
+      "definition": "Rate of All-NBA/All-Defense/All-Star selections earned during the prime window, weighted by tier (1st team=3, 2nd=2, 3rd=1, All-Star=1), averaged per year in the window."
+    },
+    "teamSuccess": {
+      "weight": 0.2,
+      "scale": "0-100 (normalized)",
+      "definition": "Blend of average team win% and deepest playoff round reached during the prime window."
+    },
+    "primeLongevity": {
+      "weight": 0.15,
+      "scale": "0-100 (normalized)",
+      "definition": "How many consecutive years the elite level was sustained, scaled/capped around a 6-year ceiling."
+    }
+  },
+  "notes": [
+    "category in players_data.json is for UI grouping/filtering only \u2014 it carries zero weight in baseValue.",
+    "primeWindow is the multi-year stretch representing a player's peak sustained level, not necessarily the season they won their specific award.",
+    "Active/young players (e.g., Wembanyama, Mobley, Edwards) have provisional scores since their prime is still unfolding.",
+    "teamSuccess in players_data.json is currently solved algebraically (so the weighted sum reproduces baseValue) as a placeholder \u2014 swap in real win%/playoff data once available and drop the solver."
+  ],
+  "pseudocode": "def calculate_pvs(peak_impact, accolade_density, team_success, prime_longevity):\n    return (0.40*peak_impact + 0.25*accolade_density + 0.20*team_success + 0.15*prime_longevity)"
+}
