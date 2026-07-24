@@ -2,6 +2,8 @@ package com.bidtwenty.game;
 
 import com.bidtwenty.data.PlayerRepository;
 import com.bidtwenty.data.StatsProvider;
+import com.bidtwenty.sports.SportDefinition;
+import com.bidtwenty.sports.SportRegistry;
 
 import java.security.SecureRandom;
 import java.util.Map;
@@ -18,16 +20,22 @@ public class GameManager {
     private final Map<String, Game> games = new ConcurrentHashMap<>();
     private final PlayerRepository repo;
     private final StatsProvider stats;
+    private final SportDefinition sportDefinition;
     private final SecureRandom random = new SecureRandom();
 
     public GameManager(PlayerRepository repo, StatsProvider stats) {
+        this(repo, stats, SportRegistry.nba());
+    }
+
+    public GameManager(PlayerRepository repo, StatsProvider stats, SportDefinition sportDefinition) {
         this.repo = repo;
         this.stats = stats;
+        this.sportDefinition = sportDefinition;
     }
 
     public Game createGame() {
         String code = uniqueCode();
-        Game game = new Game(code, repo, stats);
+        Game game = new Game(code, repo, stats, sportDefinition);
         games.put(code, game);
         return game;
     }

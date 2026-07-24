@@ -5,13 +5,13 @@ import java.util.List;
 
 /**
  * A human participant in a game room. Holds their remaining budget and the roster
- * of NBA players they have won at auction.
+ * of auctionable assets they have won at auction.
  */
 public class Participant {
     private final String id;
     private String name;
     private int budget;
-    private final List<NbaPlayer> roster = new ArrayList<>();
+    private final List<SportPlayer> roster = new ArrayList<>();
     private boolean connected = true;
 
     public Participant(String id, String name, int budget) {
@@ -40,11 +40,11 @@ public class Participant {
         this.budget -= amount;
     }
 
-    public List<NbaPlayer> getRoster() {
+    public List<SportPlayer> getRoster() {
         return roster;
     }
 
-    public void addPlayer(NbaPlayer player) {
+    public void addPlayer(SportPlayer player) {
         roster.add(player);
     }
 

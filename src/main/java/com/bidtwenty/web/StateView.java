@@ -5,8 +5,8 @@ import com.bidtwenty.game.Game;
 import com.bidtwenty.game.ScoringEngine;
 import com.bidtwenty.model.Auction;
 import com.bidtwenty.model.Category;
-import com.bidtwenty.model.NbaPlayer;
 import com.bidtwenty.model.Participant;
+import com.bidtwenty.model.SportPlayer;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -36,8 +36,8 @@ public class StateView {
         m.put("hostId", game.getHostId());
         m.put("lastAction", game.getLastAction());
         m.put("liveStats", liveStats);
-        m.put("startBudget", Game.START_BUDGET);
-        m.put("rosterSize", Game.ROSTER_SIZE);
+        m.put("startBudget", game.getStartBudget());
+        m.put("rosterSize", game.getRosterSize());
         m.put("poolIndex", game.currentIndex());
         m.put("poolSize", game.poolSize());
 
@@ -81,7 +81,7 @@ public class StateView {
         }
 
         // Pending uncontested auto-claim (player shown before it's added for $0).
-        NbaPlayer acp = game.getAutoClaimPlayer();
+        SportPlayer acp = game.getAutoClaimPlayer();
         if (acp != null) {
             Map<String, Object> ac = new LinkedHashMap<>();
             ac.put("player", playerView(acp));
@@ -101,15 +101,15 @@ public class StateView {
         return m;
     }
 
-    private List<Map<String, Object>> rosterView(List<NbaPlayer> roster) {
+    private List<Map<String, Object>> rosterView(List<SportPlayer> roster) {
         List<Map<String, Object>> list = new ArrayList<>();
-        for (NbaPlayer np : roster) {
+        for (SportPlayer np : roster) {
             list.add(playerView(np));
         }
         return list;
     }
 
-    private Map<String, Object> playerView(NbaPlayer np) {
+    private Map<String, Object> playerView(SportPlayer np) {
         Map<String, Object> pm = new LinkedHashMap<>();
         pm.put("name", np.getName());
         pm.put("team", np.getTeam());
