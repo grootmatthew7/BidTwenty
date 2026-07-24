@@ -555,11 +555,14 @@ connect();
 // bands, overtime 1/2/3, tie, cash bonus) without needing a live two-player
 // game. Enabled only for developers; ordinary players never see it.
 (function devHarness() {
-    const enabled =
-        /[?&]dev\b/.test(location.search) ||
-        location.hostname === "localhost" ||
-        location.hostname === "127.0.0.1" ||
-        (() => { try { return localStorage.getItem("bidtwenty-dev") === "1"; } catch (e) { return false; } })();
+    // TEMP: shown on the main page for everyone for now — flip back to the gated
+    // check below when we're ready to hide it from players.
+    const enabled = true;
+    // const enabled =
+    //     /[?&]dev\b/.test(location.search) ||
+    //     location.hostname === "localhost" ||
+    //     location.hostname === "127.0.0.1" ||
+    //     (() => { try { return localStorage.getItem("bidtwenty-dev") === "1"; } catch (e) { return false; } })();
     const tools = el("devTools");
     if (!enabled || !tools) return;
     tools.classList.remove("hidden");
