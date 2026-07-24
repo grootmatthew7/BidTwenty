@@ -1,16 +1,24 @@
 package com.bidtwenty.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * An auctionable NBA player. Loaded from the curated dataset (name, team,
  * category, fallback value) and optionally enriched with a live value resolved
  * from the NBA stats API. {@code resolvedValue} defaults to {@code baseValue}
  * until stats are fetched.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class NbaPlayer implements SportPlayer {
     private String name;
     private String team;
     private String category;   // Category id, e.g. "ALL_STAR"
     private String searchName; // surname used to query the stats API
+    private String primeWindow; // multi-year peak window for the player
+    private Map<String, Double> components = new LinkedHashMap<>();
     private double baseValue;  // curated fallback score (0-100, may include decimals)
 
     private double resolvedValue; // value actually used for scoring
@@ -51,6 +59,22 @@ public class NbaPlayer implements SportPlayer {
         this.searchName = searchName;
     }
 
+    public String getPrimeWindow() {
+        return primeWindow;
+    }
+
+    public void setPrimeWindow(String primeWindow) {
+        this.primeWindow = primeWindow;
+    }
+
+    public Map<String, Double> getComponents() {
+        return components;
+    }
+
+    public void setComponents(Map<String, Double> components) {
+        this.components = components == null ? new LinkedHashMap<>() : new LinkedHashMap<>(components);
+    }
+
     public double getBaseValue() {
         return baseValue;
     }
@@ -82,6 +106,8 @@ public class NbaPlayer implements SportPlayer {
         c.team = team;
         c.category = category;
         c.searchName = searchName;
+        c.primeWindow = primeWindow;
+        c.components = new LinkedHashMap<>(components);
         c.baseValue = baseValue;
         c.resolvedValue = baseValue; // start from fallback
         c.valueSource = "curated";

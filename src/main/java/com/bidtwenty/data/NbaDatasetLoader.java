@@ -3,6 +3,7 @@ package com.bidtwenty.data;
 import com.bidtwenty.model.Category;
 import com.bidtwenty.model.NbaPlayer;
 import com.bidtwenty.model.SportPlayer;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
@@ -47,6 +48,7 @@ public class NbaDatasetLoader implements DatasetLoader {
 
     private Dataset load() {
         ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         try (InputStream in = getClass().getClassLoader().getResourceAsStream("players.json")) {
             if (in == null) {
                 throw new IllegalStateException("players.json not found on classpath");
