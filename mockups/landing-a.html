@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BidTwenty — Landing Mock A · Broadcast Orange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0d0e; --ink:#f3efe9; --muted:#8a8781; --accent:#ff5a1f; --line:#26241f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Archivo",-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    overflow-x:hidden;
+  }
+  .disp{ font-family:"Anton","Arial Narrow",Impact,sans-serif; font-weight:400; }
+
+  /* NAV */
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 34px; letter-spacing:.14em; font-size:.72rem; text-transform:uppercase;
+  }
+  nav .brand{ font-weight:700; letter-spacing:.22em; }
+  nav .brand b{ color:var(--accent); }
+  nav .right{ display:flex; align-items:center; gap:20px; color:var(--muted); }
+  nav .right a{ color:inherit; text-decoration:none; }
+  nav .right a:hover{ color:var(--ink); }
+  nav .icons{ display:flex; gap:12px; font-size:.95rem; }
+
+  /* HERO */
+  .hero{
+    position:relative; min-height:calc(100vh - 66px - 46px);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .headline{
+    text-align:center; z-index:3; position:relative; max-width:940px;
+  }
+  .headline h1{
+    margin:0; line-height:.86; text-transform:uppercase; color:var(--accent);
+    font-size:clamp(3rem,10vw,8.4rem); transform:skewX(-9deg);
+  }
+  .headline h1 .plain{ color:var(--ink); }
+  .cta{
+    margin-top:34px; display:inline-flex; align-items:center; gap:12px;
+    border:1px solid var(--accent); color:var(--accent);
+    padding:14px 30px; border-radius:999px; text-decoration:none;
+    text-transform:uppercase; letter-spacing:.14em; font-size:.74rem; font-weight:700;
+    transition:.18s ease;
+  }
+  .cta:hover{ background:var(--accent); color:#111; }
+
+  /* PORTRAIT FRAMES */
+  .frame{
+    position:absolute; border-radius:8px; overflow:hidden;
+    background:linear-gradient(160deg,#2a2723,#131211);
+    border:1px solid var(--line); z-index:2;
+  }
+  .frame::after{
+    content:attr(data-tag); position:absolute; left:10px; bottom:9px;
+    font-size:.58rem; letter-spacing:.18em; color:var(--muted); text-transform:uppercase;
+  }
+  .frame svg{ width:100%; height:100%; display:block; opacity:.5; filter:grayscale(1); }
+  .frame.left{ left:6vw; top:12%; width:210px; height:300px; transform:rotate(-2deg); }
+  .frame.right{ right:6vw; bottom:8%; width:190px; height:210px; transform:rotate(2deg); }
+
+  /* TICKER */
+  .ticker{
+    border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    overflow:hidden; white-space:nowrap; background:#0a0a0b;
+  }
+  .ticker .track{ display:inline-block; padding:12px 0; animation:scroll 22s linear infinite; }
+  .ticker span{
+    font-size:.72rem; letter-spacing:.24em; text-transform:uppercase; color:var(--accent);
+    padding:0 26px;
+  }
+  .ticker span b{ color:var(--muted); }
+  @keyframes scroll{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+
+  @media(max-width:720px){
+    .frame{ display:none; }
+    .headline h1{ font-size:clamp(2.6rem,15vw,5rem); }
+  }
+</style>
+</head>
+<body>
+  <nav>
+    <div class="brand">Bid<b>Twenty</b></div>
+    <div class="right">
+      <a href="#">How it works</a>
+      <a href="#">Login</a>
+      <span class="icons">◐ ◑ ◒</span>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="frame left" data-tag="Your roster">
+      <svg viewBox="0 0 100 120"><circle cx="50" cy="40" r="20" fill="#4a463f"/><path d="M14 120 Q14 80 50 80 Q86 80 86 120 Z" fill="#4a463f"/></svg>
+    </div>
+
+    <div class="headline">
+      <h1 class="disp">Turn your <span class="plain">$20</span><br>into a dynasty</h1>
+      <a class="cta" href="#">Enter the draft →</a>
+    </div>
+
+    <div class="frame right" data-tag="Their roster">
+      <svg viewBox="0 0 100 120"><circle cx="50" cy="40" r="20" fill="#4a463f"/><path d="M14 120 Q14 80 50 80 Q86 80 86 120 Z" fill="#4a463f"/></svg>
+    </div>
+  </section>
+
+  <div class="ticker">
+    <div class="track">
+      <span>$20 <b>·</b> Two GMs <b>·</b> One live auction <b>·</b> Winner takes the ring <b>·</b></span>
+      <span>$20 <b>·</b> Two GMs <b>·</b> One live auction <b>·</b> Winner takes the ring <b>·</b></span>
+    </div>
+  </div>
+</body>
+</html>
