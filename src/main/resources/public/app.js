@@ -320,8 +320,28 @@ const MARGIN_BANDS = [
     },
 ];
 
-function pick(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
+// Deterministic RNG seeded from the shared result, so BOTH players' screens
+// agree on the overtime designation and flavor text without a server round-trip.
+// The seed is built from participant ids + final totals — identical on both
+// clients — and each call site is keyed so their picks don't collide.
+function hashString(str) {
+    let h = 2166136261 >>> 0;                 // FNV-1a, 32-bit
+    for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+}
+
+function resultSeed(r) {
+    return [...r.scores]
+        .map((s) => s.participantId + ":" + s.total)
+        .sort()
+        .join("|");
+}
+
+function seededPick(r, key, arr) {
+    return arr[hashString(resultSeed(r) + "#" + key) % arr.length];
 }
 
 function showMarginPopup(r) {
@@ -333,8 +353,8 @@ function showMarginPopup(r) {
     if (!winner || !loser || winner.total <= 0) { popup.classList.add("hidden"); return; }
     const pct = ((winner.total - loser.total) / winner.total) * 100;
     const band = MARGIN_BANDS.find((b) => pct <= b.max) || MARGIN_BANDS[MARGIN_BANDS.length - 1];
-    popup.querySelector(".margin-term").textContent = pick(band.terms);
-    popup.querySelector(".margin-blurb").textContent = pick(band.blurbs);
+    popup.querySelector(".margin-term").textContent = seededPick(r, "term", band.terms);
+    popup.querySelector(".margin-blurb").textContent = seededPick(r, "blurb", band.blurbs);
     popup.querySelector(".margin-pct").textContent = pct.toFixed(1) + "% margin";
     const m = buildScoreModel(r);
     popup.querySelector(".margin-score").innerHTML = m.board.length === 2 ? scorelineHTML(m) : "";
@@ -393,7 +413,7 @@ function buildScoreModel(r) {
     let otTag = null;
     let periods = 0;
     if (!r.tie && pct <= 2 && sum > 0) {
-        periods = 1 + Math.floor(Math.random() * 3);      // 1..3
+        periods = 1 + (hashString(resultSeed(r) + "#ot") % 3);   // 1..3, synced
         otTag = "OT" + (periods > 1 ? periods : "");
     }
 
