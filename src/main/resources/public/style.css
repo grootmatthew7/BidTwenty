@@ -1,15 +1,35 @@
-:root {
-    --bg: #0e1116;
-    --panel: #171d26;
-    --panel-2: #1f2733;
-    --line: #2b3543;
-    --text: #e8edf3;
-    --muted: #8a97a8;
-    --accent: #f97316;
-    --accent-2: #38bdf8;
-    --me: #22c55e;
-    --them: #f43f5e;
-    --gold: #fbbf24;
+/* Dark mode — "Blacktop / Streetball": concrete grays + spray-paint volt & magenta. */
+:root, :root[data-theme="dark"] {
+    --bg: #17181a;
+    --panel: #212327;
+    --panel-2: #2b2e33;
+    --line: #3a3d42;
+    --text: #ececec;
+    --muted: #8b8f96;
+    --accent: #d4ff2e;
+    --accent-2: #ff3d81;
+    --me: #4ade80;
+    --them: #ff5252;
+    --gold: #ffd23f;
+    --btn-ink: #14150f;
+    --bg-glow: #22252a;
+}
+
+/* Light mode — "Hardwood Classic": maple court, walnut lines, leather-orange. */
+:root[data-theme="light"] {
+    --bg: #f3e7cf;
+    --panel: #fffaf0;
+    --panel-2: #efe0c6;
+    --line: #d8c199;
+    --text: #2a1f14;
+    --muted: #8a7454;
+    --accent: #d9541a;
+    --accent-2: #1d4e89;
+    --me: #1a7a3c;
+    --them: #b4232a;
+    --gold: #c8912b;
+    --btn-ink: #fff6e9;
+    --bg-glow: #fbf1dd;
 }
 
 * { box-sizing: border-box; }
@@ -17,7 +37,7 @@
 body {
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background: radial-gradient(1200px 600px at 50% -10%, #1b2330, var(--bg));
+    background: radial-gradient(1200px 600px at 50% -10%, var(--bg-glow), var(--bg));
     color: var(--text);
     min-height: 100vh;
 }
@@ -44,6 +64,32 @@ main {
 }
 
 .hidden { display: none !important; }
+
+/* Light/dark toggle, pinned top-right. */
+.theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 60;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    margin: 0;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 1.2rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+    transition: transform .12s ease, background .2s ease, border-color .2s ease;
+}
+.theme-toggle:hover { transform: translateY(-1px); border-color: var(--accent); }
+.theme-toggle:active { transform: translateY(0); }
 
 .card {
     background: var(--panel);
@@ -82,7 +128,7 @@ input:focus { outline: 2px solid var(--accent-2); }
 
 button {
     background: var(--accent);
-    color: #10151c;
+    color: var(--btn-ink);
     font-weight: 700;
     border: none;
     cursor: pointer;
@@ -136,8 +182,8 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
     border-radius: 14px;
     padding: 14px;
 }
-.team.me { border-color: rgba(34,197,94,.5); }
-.team.them { border-color: rgba(244,63,94,.5); }
+.team.me { border-color: color-mix(in srgb, var(--me) 55%, transparent); }
+.team.them { border-color: color-mix(in srgb, var(--them) 55%, transparent); }
 .team.turn { box-shadow: 0 0 0 2px var(--accent) inset; }
 .team .team-head { display: flex; justify-content: space-between; align-items: baseline; }
 .team .team-name { font-weight: 800; font-size: 1.1rem; }
@@ -151,7 +197,7 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
 .team.full { box-shadow: 0 0 0 2px var(--gold) inset; }
 .badge-full {
     font-size: .7rem;
-    color: #10151c;
+    color: var(--btn-ink);
     background: var(--gold);
     border-radius: 999px;
     padding: 2px 7px;
@@ -170,7 +216,7 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
 }
 .up-for-bid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .player-card {
-    background: linear-gradient(160deg, var(--panel-2), #131a24);
+    background: linear-gradient(160deg, var(--panel-2), var(--panel));
     border: 1px solid var(--line);
     border-radius: 14px;
     padding: 18px;
@@ -180,7 +226,7 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
 .player-card .pc-team { color: var(--muted); margin: 4px 0 12px; }
 .player-card .pc-cat {
     display: inline-block;
-    background: rgba(56,189,248,.15);
+    background: color-mix(in srgb, var(--accent-2) 16%, transparent);
     color: var(--accent-2);
     border-radius: 999px;
     padding: 5px 12px;
@@ -223,7 +269,7 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
     border-radius: 12px;
     padding: 14px;
 }
-.result-team.winner { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(251,191,36,.3) inset; }
+.result-team.winner { border-color: var(--gold); box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 30%, transparent) inset; }
 .result-team h3 { margin: 0 0 4px; }
 .result-team .total { font-size: 1.8rem; font-weight: 800; color: var(--gold); }
 .result-team table { width: 100%; border-collapse: collapse; font-size: .82rem; margin-top: 10px; }
@@ -233,9 +279,9 @@ button.secondary { background: var(--panel-2); color: var(--text); border: 1px s
 .result-team tr.bonus-line td { color: var(--gold); font-weight: 700; border-top: 1px solid var(--gold); }
 .result-team.bonus-pop { animation: bonusPop .5s ease; }
 @keyframes bonusPop {
-    0% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
-    40% { box-shadow: 0 0 0 3px rgba(251,191,36,.5) inset; }
-    100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+    0% { box-shadow: 0 0 0 0 transparent; }
+    40% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 50%, transparent) inset; }
+    100% { box-shadow: 0 0 0 0 transparent; }
 }
 
 #resultHeadline { text-align: center; font-size: 1.8rem; margin-bottom: 4px; }
