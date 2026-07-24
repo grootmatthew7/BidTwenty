@@ -5,6 +5,9 @@ import com.bidtwenty.data.StatsProvider;
 import com.bidtwenty.game.Game;
 import com.bidtwenty.game.GameManager;
 import com.bidtwenty.model.Participant;
+import com.bidtwenty.sports.SportDefinition;
+import com.bidtwenty.sports.SportId;
+import com.bidtwenty.sports.SportRegistry;
 import com.bidtwenty.web.StateView;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,9 +32,10 @@ public class Main {
     }
 
     private final ObjectMapper mapper = new ObjectMapper();
-    private final PlayerRepository repo = new PlayerRepository();
-    private final StatsProvider stats = new StatsProvider();
-    private final GameManager manager = new GameManager(repo, stats);
+    private final SportDefinition sportDefinition = resolveSportDefinition();
+    private final PlayerRepository repo = new PlayerRepository(sportDefinition.datasetLoader());
+    private final StatsProvider stats = new StatsProvider(sportDefinition.liveValueProvider());
+    private final GameManager manager = new GameManager(repo, stats, sportDefinition);
     private final StateView stateView = new StateView(repo, stats.isLiveEnabled());
 
     // socket -> (room, participant); room -> set of sockets
@@ -49,6 +53,15 @@ public class Main {
     public static void main(String[] args) {
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "7070"));
         new Main().start(port);
+    }
+
+    private static SportDefinition resolveSportDefinition() {
+        String requested = System.getenv().getOrDefault("BIDTWENTY_SPORT", SportId.NBA.name());
+        SportDefinition resolved = SportRegistry.get(requested);
+        if (resolved == null) {
+            return SportRegistry.nba();
+        }
+        return resolved;
     }
 
     private void start(int port) {
@@ -78,7 +91,8 @@ public class Main {
 
         app.start(port);
         System.out.println("BidTwenty running at http://localhost:" + port
-                + "  (live NBA stats: " + (stats.isLiveEnabled() ? "ON" : "OFF - using curated values") + ")");
+                + "  (sport=" + sportDefinition.label() + ", live stats: "
+                + (stats.isLiveEnabled() ? "ON" : "OFF - using curated values") + ")");
     }
 
     private void onMessage(io.javalin.websocket.WsMessageContext ctx) {

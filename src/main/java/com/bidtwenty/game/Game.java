@@ -4,8 +4,10 @@ import com.bidtwenty.data.PlayerRepository;
 import com.bidtwenty.data.StatsProvider;
 import com.bidtwenty.model.Auction;
 import com.bidtwenty.model.Category;
-import com.bidtwenty.model.NbaPlayer;
 import com.bidtwenty.model.Participant;
+import com.bidtwenty.model.SportPlayer;
+import com.bidtwenty.sports.SportDefinition;
+import com.bidtwenty.sports.SportRegistry;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,6 +30,9 @@ public class Game {
     public static final int START_BUDGET = 20;
     public static final int ROSTER_SIZE = 5;
 
+    private final int startBudget;
+    private final int rosterSize;
+
     // Delay between showing an auto-claimed player and adding it to the trailing
     // squad. Overridable via env var so tests can run without the 3s pause.
     public static final long AUTO_CLAIM_DELAY_MS =
@@ -37,13 +42,14 @@ public class Game {
     private final PlayerRepository repo;
     private final StatsProvider stats;
     private final ScoringEngine scoring;
+    private final SportDefinition sportDefinition;
 
     private final List<Participant> participants = new ArrayList<>();
     private String hostId;
 
     private Phase phase = Phase.LOBBY;
     private Category category;
-    private List<NbaPlayer> pool = new ArrayList<>();
+    private List<SportPlayer> pool = new ArrayList<>();
     private int currentIndex = -1;
     private Auction auction;
     private String lastAction = "";
@@ -51,7 +57,7 @@ public class Game {
 
     // Auto-fill: a player revealed and pending a delayed, free add to the
     // trailing squad (set while the reveal is on screen, cleared on commit).
-    private NbaPlayer autoClaimPlayer;
+    private SportPlayer autoClaimPlayer;
     private String autoClaimTargetId;
 
     // Wired by the server so the game can drive its own timed auto-fill steps
@@ -60,9 +66,16 @@ public class Game {
     private Runnable broadcaster;
 
     public Game(String roomCode, PlayerRepository repo, StatsProvider stats) {
+        this(roomCode, repo, stats, SportRegistry.nba());
+    }
+
+    public Game(String roomCode, PlayerRepository repo, StatsProvider stats, SportDefinition sportDefinition) {
         this.roomCode = roomCode;
         this.repo = repo;
         this.stats = stats;
+        this.sportDefinition = sportDefinition;
+        this.startBudget = sportDefinition.startBudget();
+        this.rosterSize = sportDefinition.rosterSize();
         this.scoring = new ScoringEngine(repo);
     }
 
@@ -98,7 +111,7 @@ public class Game {
     }
 
     /** Player currently being shown before its delayed auto-add, or null. */
-    public NbaPlayer getAutoClaimPlayer() {
+    public SportPlayer getAutoClaimPlayer() {
         return autoClaimPlayer;
     }
 
@@ -117,6 +130,14 @@ public class Game {
 
     public int poolSize() {
         return pool.size();
+    }
+
+    public int getStartBudget() {
+        return startBudget;
+    }
+
+    public int getRosterSize() {
+        return rosterSize;
     }
 
     public int currentIndex() {
@@ -151,7 +172,7 @@ public class Game {
             throw new IllegalStateException("Game already started");
         }
         String id = UUID.randomUUID().toString();
-        Participant p = new Participant(id, sanitizeName(name), START_BUDGET);
+        Participant p = new Participant(id, sanitizeName(name), startBudget);
         participants.add(p);
         if (hostId == null) {
             hostId = id;
@@ -193,19 +214,10 @@ public class Game {
      * player revealed this game belongs to the same set.
      */
     private void buildPool() {
-        List<Category> cats = new ArrayList<>(repo.categories().values());
-        Collections.shuffle(cats);
-        category = cats.get(0);
-
-        List<NbaPlayer> inCategory = new ArrayList<>();
-        for (NbaPlayer p : repo.allPlayers()) {
-            if (category.id().equals(p.getCategory())) {
-                inCategory.add(p);
-            }
-        }
-        Collections.shuffle(inCategory);
+        category = sportDefinition.chooseCategory(repo);
+        List<SportPlayer> inCategory = sportDefinition.buildPool(repo, category);
         // The whole category is up for grabs — every award winner in this set can
-        // surface. Only 2 * ROSTER_SIZE will actually be drafted, but any of them
+        // surface. Only 2 * rosterSize will actually be drafted, but any of them
         // may be the one that comes up next.
         pool = new ArrayList<>(inCategory);
     }
@@ -214,7 +226,7 @@ public class Game {
 
     /** Open roster spots remaining for a participant. */
     private int openSpots(Participant p) {
-        return ROSTER_SIZE - p.getRoster().size();
+        return rosterSize - p.getRoster().size();
     }
 
     private boolean isFull(Participant p) {
@@ -252,7 +264,7 @@ public class Game {
             Participant b = participants.get(1);
             boolean aRoom = !isFull(a);
             boolean bRoom = !isFull(b);
-            NbaPlayer np = pool.get(currentIndex);
+            SportPlayer np = pool.get(currentIndex);
 
             if (aRoom && bRoom) {
                 // Contested: both squads still need players -> open auction.
@@ -276,7 +288,7 @@ public class Game {
      * {@link #AUTO_CLAIM_DELAY_MS}. There is nothing to bid on, so both clients
      * just watch the squad fill out one player at a time.
      */
-    private void beginAutoClaim(Participant target, NbaPlayer np) {
+    private void beginAutoClaim(Participant target, SportPlayer np) {
         auction = null;
         autoClaimPlayer = np;
         autoClaimTargetId = target.getId();
@@ -305,7 +317,7 @@ public class Game {
             return; // nothing pending (or the game already ended)
         }
         Participant target = participant(autoClaimTargetId);
-        NbaPlayer np = autoClaimPlayer;
+        SportPlayer np = autoClaimPlayer;
         autoClaimPlayer = null;
         autoClaimTargetId = null;
         draft(target, np, 0, target.getName() + " added " + np.getName() + " for $0 (uncontested)");
@@ -373,7 +385,7 @@ public class Game {
     private void award() {
         Participant winner = participant(auction.getHighBidderId());
         int price = auction.getCurrentBid();
-        NbaPlayer np = auction.getPlayer();
+        SportPlayer np = auction.getPlayer();
         auction = null;
         draft(winner, np, price, winner.getName() + " won " + np.getName() + " for $" + price);
         currentIndex++;
@@ -386,7 +398,7 @@ public class Game {
      * shifts into this slot) and reveal whoever is next.
      */
     private void requeueCurrent() {
-        NbaPlayer np = pool.remove(currentIndex);
+        SportPlayer np = pool.remove(currentIndex);
         pool.add(np);
         auction = null;
         lastAction = "No bids on " + np.getName() + " — back of the queue";
@@ -394,7 +406,7 @@ public class Game {
     }
 
     /** Assign a player to a squad, charge the price, and record the action. */
-    private void draft(Participant winner, NbaPlayer np, int price, String action) {
+    private void draft(Participant winner, SportPlayer np, int price, String action) {
         winner.spend(price);
         winner.addPlayer(np);
         lastAction = action;

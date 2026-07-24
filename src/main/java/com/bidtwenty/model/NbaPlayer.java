@@ -6,7 +6,7 @@ package com.bidtwenty.model;
  * from the NBA stats API. {@code resolvedValue} defaults to {@code baseValue}
  * until stats are fetched.
  */
-public class NbaPlayer {
+public class NbaPlayer implements SportPlayer {
     private String name;
     private String team;
     private String category;   // Category id, e.g. "ALL_STAR"

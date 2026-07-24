@@ -2,54 +2,35 @@ package com.bidtwenty.data;
 
 import com.bidtwenty.model.Category;
 import com.bidtwenty.model.NbaPlayer;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.bidtwenty.model.SportPlayer;
 
-import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Loads the curated categories + players from {@code players.json} on the
- * classpath. This is the source of truth for category membership (which the
- * free NBA API does not expose) and for fallback player values.
+ * Loads the curated categories + players from the selected sport dataset.
+ * The default implementation remains NBA-compatible so the app continues to
+ * function as-is while making the data source replaceable.
  */
 public class PlayerRepository {
 
-    /** Jackson-friendly shape mirroring players.json. */
-    public static class Dataset {
-        public List<Category> categories = new ArrayList<>();
-        public List<NbaPlayer> players = new ArrayList<>();
-    }
-
-    private final List<NbaPlayer> players;
-    private final Map<String, Category> categoriesById = new LinkedHashMap<>();
+    private final List<SportPlayer> players;
+    private final Map<String, Category> categoriesById;
 
     public PlayerRepository() {
-        Dataset dataset = load();
-        this.players = dataset.players;
-        for (Category c : dataset.categories) {
-            categoriesById.put(c.id(), c);
-        }
+        this(new NbaDatasetLoader());
     }
 
-    private Dataset load() {
-        ObjectMapper mapper = new ObjectMapper();
-        try (InputStream in = getClass().getClassLoader().getResourceAsStream("players.json")) {
-            if (in == null) {
-                throw new IllegalStateException("players.json not found on classpath");
-            }
-            return mapper.readValue(in, Dataset.class);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to load players.json", e);
-        }
+    public PlayerRepository(DatasetLoader loader) {
+        this.players = new ArrayList<>(loader.players());
+        this.categoriesById = loader.categoriesById();
     }
 
     /** Fresh, independent copies of every curated player. */
-    public List<NbaPlayer> allPlayers() {
-        List<NbaPlayer> copies = new ArrayList<>(players.size());
-        for (NbaPlayer p : players) {
+    public List<SportPlayer> allPlayers() {
+        List<SportPlayer> copies = new ArrayList<>(players.size());
+        for (SportPlayer p : players) {
             copies.add(p.copy());
         }
         return copies;
