@@ -504,4 +504,23 @@ el("bidAmount").addEventListener("keydown", (e) => {
 el("playAgainBtn").onclick = () => location.reload();
 el("marginDismiss").onclick = () => el("marginPopup").classList.add("hidden");
 
+// ---- Theme toggle (light "Hardwood" / dark "Blacktop") --------------------
+function currentTheme() {
+    return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+}
+function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    const btn = el("themeToggle");
+    if (btn) {
+        btn.textContent = theme === "light" ? "☀️" : "🌙";
+        btn.title = theme === "light" ? "Switch to dark mode" : "Switch to light mode";
+    }
+}
+el("themeToggle").onclick = () => {
+    const next = currentTheme() === "light" ? "dark" : "light";
+    try { localStorage.setItem("bidtwenty-theme", next); } catch (e) { /* private mode */ }
+    applyTheme(next);
+};
+applyTheme(currentTheme());
+
 connect();

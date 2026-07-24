@@ -4,9 +4,18 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>BidTwenty — NBA Auction Draft</title>
+    <!-- Apply the saved theme before first paint to avoid a flash. Dark is the default. -->
+    <script>
+        (function () {
+            var t = null;
+            try { t = localStorage.getItem("bidtwenty-theme"); } catch (e) {}
+            document.documentElement.setAttribute("data-theme", t === "light" ? "light" : "dark");
+        })();
+    </script>
     <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
+<button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle light and dark mode"></button>
 <header>
     <h1>Bid<span>Twenty</span></h1>
     <p class="tagline">$20. Two GMs. One live NBA auction.</p>
