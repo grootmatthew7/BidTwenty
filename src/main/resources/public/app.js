@@ -396,6 +396,10 @@ const OT_POINTS_PER_TEAM = 12;
 // same overtime designation and box-score numbers even across re-renders.
 let scoreModel = null;
 
+// Set only by the dev/test harness to force a specific overtime period count.
+// Null during real play, so live games keep their seeded (synced) value.
+let devOtOverride = null;
+
 function buildScoreModel(r) {
     if (scoreModel) return scoreModel;
     if (r.scores.length !== 2) {
@@ -414,6 +418,7 @@ function buildScoreModel(r) {
     let periods = 0;
     if (!r.tie && pct <= 2 && sum > 0) {
         periods = 1 + (hashString(resultSeed(r) + "#ot") % 3);   // 1..3, synced
+        if (devOtOverride != null) periods = devOtOverride;      // dev harness only
         otTag = "OT" + (periods > 1 ? periods : "");
     }
 
@@ -544,3 +549,128 @@ el("themeToggle").onclick = () => {
 applyTheme(currentTheme());
 
 connect();
+
+// ---- Dev / test harness ---------------------------------------------------
+// A hidden panel for previewing every end-screen (player card, all margin
+// bands, overtime 1/2/3, tie, cash bonus) without needing a live two-player
+// game. Enabled only for developers; ordinary players never see it.
+(function devHarness() {
+    const enabled =
+        /[?&]dev\b/.test(location.search) ||
+        location.hostname === "localhost" ||
+        location.hostname === "127.0.0.1" ||
+        (() => { try { return localStorage.getItem("bidtwenty-dev") === "1"; } catch (e) { return false; } })();
+    const tools = el("devTools");
+    if (!enabled || !tools) return;
+    tools.classList.remove("hidden");
+
+    el("devFab").onclick = () => el("devTray").classList.toggle("hidden");
+
+    // Sample players covering both value sources, long names, and varied
+    // categories — cycle through them to eyeball the auction player card.
+    const DEV_PLAYERS = [
+        { name: "Nikola Jokić", team: "Denver Nuggets", categoryLabel: "Most Valuable Player", value: 96.4, valueSource: "live" },
+        { name: "Shai Gilgeous-Alexander", team: "Oklahoma City Thunder", categoryLabel: "Scoring Champion", value: 98.1, valueSource: "live" },
+        { name: "Victor Wembanyama", team: "San Antonio Spurs", categoryLabel: "Defensive Player of the Year", value: 91.7, valueSource: "curated" },
+        { name: "Stephen Curry", team: "Golden State Warriors", categoryLabel: "Three-Point King", value: 89.3, valueSource: "curated" },
+        { name: "Giannis Antetokounmpo", team: "Milwaukee Bucks", categoryLabel: "Most Valuable Player", value: 95.0, valueSource: "live" },
+    ];
+    const DEV_ROSTER_A = [
+        { name: "LeBron James", team: "LAL", value: 88 },
+        { name: "Anthony Edwards", team: "MIN", value: 90 },
+        { name: "Jalen Brunson", team: "NYK", value: 86 },
+    ];
+    const DEV_ROSTER_B = [
+        { name: "Luka Dončić", team: "DAL", value: 93 },
+        { name: "Jayson Tatum", team: "BOS", value: 91 },
+        { name: "Devin Booker", team: "PHX", value: 87 },
+    ];
+    let devPlayerIdx = 0;
+
+    // Split a pre-bonus subtotal across roster names into weighted breakdown rows.
+    function devBreakdown(subtotal, roster) {
+        const weights = [0.4, 0.35, 0.25];
+        let acc = 0;
+        return roster.map((pl, i) => {
+            const last = i === roster.length - 1;
+            const pts = last
+                ? Math.round((subtotal - acc) * 10) / 10
+                : Math.round(subtotal * weights[i] * 10) / 10;
+            acc = Math.round((acc + pts) * 10) / 10;
+            return { player: pl.name, team: pl.team, points: pts };
+        });
+    }
+
+    function devScore(pid, name, total, bonus, roster) {
+        const subtotal = Math.round((total / bonus) * 10) / 10;
+        return {
+            participantId: pid,
+            name,
+            total,
+            cashLeft: bonus > 1 ? 8 : 2,
+            bonusMultiplier: bonus,
+            breakdown: devBreakdown(subtotal, roster),
+        };
+    }
+
+    function devResult(o) {
+        const bonusA = o.bonusA || 1;
+        const bonusB = o.bonusB || 1;
+        const A = devScore("A", "You", o.totalA, bonusA, DEV_ROSTER_A);
+        const B = devScore("B", "Rival GM", o.totalB, bonusB, DEV_ROSTER_B);
+        const winnerId = o.tie ? null : (o.totalA >= o.totalB ? "A" : "B");
+        return { scores: [A, B], winnerId, tie: !!o.tie };
+    }
+
+    function devShowResult(r, animate) {
+        myId = "A";
+        scoreModel = null;
+        resultsAnimated = !animate;   // when not animating, fill instantly
+        onState({ phase: "FINISHED", result: r, participants: [], lastAction: "DEV: result preview", liveStats: false });
+        if (!animate) showMarginPopup(r);   // the animated path shows this itself
+    }
+
+    function devCyclePlayer() {
+        myId = "A";
+        const player = DEV_PLAYERS[devPlayerIdx++ % DEV_PLAYERS.length];
+        onState({
+            phase: "AUCTION",
+            room: "DEV",
+            category: { label: player.categoryLabel },
+            rosterSize: 5,
+            participants: [
+                { id: "A", name: "You", budget: 12, connected: true, roster: DEV_ROSTER_A.slice(0, 2) },
+                { id: "B", name: "Rival GM", budget: 7, connected: true, roster: DEV_ROSTER_B.slice(0, 1) },
+            ],
+            auction: { player, turnId: "A", currentBid: 3, highBidderId: "B", minBid: 4 },
+            autoClaim: null,
+            lastAction: "DEV: previewing “" + player.name + "”",
+            liveStats: player.valueSource === "live",
+        });
+    }
+
+    const PRESETS = {
+        "margin-blowout":   { totalA: 130, totalB: 95 },
+        "margin-confident": { totalA: 120, totalB: 110 },
+        "margin-nailbiter": { totalA: 115, totalB: 110 },
+        "margin-buzzer":    { totalA: 112, totalB: 111 },
+        "tie":              { totalA: 110, totalB: 110, tie: true },
+        "bonus":            { totalA: 120, totalB: 104, bonusA: 1.15 },
+        "ot1":              { totalA: 112, totalB: 111, ot: 1 },
+        "ot2":              { totalA: 112, totalB: 111, ot: 2 },
+        "ot3":              { totalA: 112, totalB: 111, ot: 3 },
+    };
+
+    tools.querySelectorAll("[data-dev]").forEach((btn) => {
+        btn.onclick = () => {
+            const kind = btn.getAttribute("data-dev");
+            devOtOverride = null;
+            if (kind === "player") { devCyclePlayer(); return; }
+            const preset = PRESETS[kind];
+            if (!preset) return;
+            devOtOverride = preset.ot != null ? preset.ot : null;
+            const animate = !!(el("devAnimate") && el("devAnimate").checked);
+            devShowResult(devResult(preset), animate);
+        };
+    });
+})();

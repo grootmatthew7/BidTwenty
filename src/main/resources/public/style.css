@@ -400,6 +400,32 @@ button.secondary { background: transparent; color: var(--text); border: 1px soli
 :root[data-theme="light"] .ticker { background: var(--bg); }
 @keyframes tickerScroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
+/* ---- Dev / test harness (hidden unless dev mode is enabled) -------------- */
+.dev-tools { position: fixed; left: 16px; bottom: 16px; z-index: 9999; font-family: var(--body); }
+.dev-fab {
+    background: var(--accent); color: var(--btn-ink); border: none;
+    border-radius: 999px; padding: 8px 16px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; font-size: .72rem; cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .35);
+}
+.dev-tray {
+    position: absolute; left: 0; bottom: calc(100% + 8px); width: 232px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px; box-shadow: 0 12px 40px rgba(0, 0, 0, .45);
+}
+.dev-group { margin-bottom: 12px; }
+.dev-label {
+    display: block; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .12em; font-size: .62rem; margin-bottom: 6px;
+}
+.dev-tray button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 10px; margin: 0 4px 4px 0; font-size: .72rem;
+    cursor: pointer;
+}
+.dev-tray button:hover { border-color: var(--accent); }
+.dev-check { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: .72rem; }
+
 footer { text-align: center; padding: 20px; color: var(--muted); font-size: .8rem; }
 #liveBadge .on { color: var(--me); }
 #liveBadge .off { color: var(--muted); }
